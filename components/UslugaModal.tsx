@@ -54,7 +54,7 @@ export default function UslugaModal({ isOpen, onClose, onSave, initialData, salo
             if (initialData) {
                 setCategoryId(initialData.categoryId || null);
                 setNameId(initialData.nameId || null);
-                setPrice(initialData.price || 0);
+                //setPrice(initialData.price || 0);
 
             } else {
                 setCategoryId(null);

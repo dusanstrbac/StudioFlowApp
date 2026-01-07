@@ -1,23 +1,22 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const zasticeneRute = ["/"];
-
 export function middleware(req: NextRequest) {
-    
     const token = req.cookies.get("AuthToken")?.value;
+    const { pathname } = req.nextUrl;
 
-    if(zasticeneRute.some((path) => req.nextUrl.pathname.startsWith(path))) {
-        
-        if(!token) {
-            const loginUrl = new URL('/login', req.url);
-            return NextResponse.redirect(loginUrl);
-        }
+    // Definišemo javne rute koje NE zahtevaju token
+    const isPublicPage = pathname === "/login" || pathname === "/reset-password";
+
+    if (!token && !isPublicPage) {
+        return NextResponse.redirect(new URL("/login", req.url));
     }
 
     return NextResponse.next();
 }
 
 export const config = {
-    matcher: ["/((?!login|_next|favicon.ico).*)"], // sve osim login, _next i favicon
+    // Ovde koristimo matcher da preskočimo statičke fajlove i API rute
+    // ali samu logiku provere radimo unutar middleware funkcije iznad
+    matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

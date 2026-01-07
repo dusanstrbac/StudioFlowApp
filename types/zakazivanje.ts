@@ -5,6 +5,7 @@ export interface Service {
 }
 
 export interface Address {
-  id: string;
-  name: string;
+  id: number;
+  nazivLokacije: string;
+  adresa: string;
 }

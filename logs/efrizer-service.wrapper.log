@@ -1,0 +1,13 @@
+2026-01-07 18:12:50,989 DEBUG - Starting WinSW in console mode
+2026-01-07 18:12:51,020 INFO  - Uninstalling service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
+2026-01-07 18:12:51,026 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' was uninstalled successfully.
+2026-01-07 18:12:56,975 DEBUG - Starting WinSW in console mode
+2026-01-07 18:12:57,008 INFO  - Installing service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
+2026-01-07 18:12:57,026 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' was installed successfully.
+2026-01-07 18:13:14,705 DEBUG - Starting WinSW in console mode
+2026-01-07 18:13:14,741 INFO  - Starting service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
+2026-01-07 18:13:15,087 DEBUG - Starting WinSW in service mode
+2026-01-07 18:13:15,119 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' started successfully.
+2026-01-07 18:13:15,236 INFO  - Starting node node_modules\next\dist\bin\next start -p 7777 -H 0.0.0.0
+2026-01-07 18:13:15,263 INFO  - Started process 12628
+2026-01-07 18:13:15,276 DEBUG - Forwarding logs of the process System.Diagnostics.Process (node) to WinSW.RollingLogAppender

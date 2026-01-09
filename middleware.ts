@@ -1,23 +1,20 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const zasticeneRute = ["/"];
-
 export function middleware(req: NextRequest) {
-    
     const token = req.cookies.get("AuthToken")?.value;
+    const { pathname, origin } = req.nextUrl; // Uzimamo origin (npr. http://93.87.226.214:3000)
 
-    if(zasticeneRute.some((path) => req.nextUrl.pathname.startsWith(path))) {
-        
-        if(!token) {
-            const loginUrl = new URL('/login', req.url);
-            return NextResponse.redirect(loginUrl);
-        }
+    const isPublicPage = pathname === "/login" || pathname === "/reset-password";
+
+    if (!token && !isPublicPage) {
+        // Koristimo origin da budemo sigurni da port ostaje isti
+        return NextResponse.redirect(`${origin}/login`);
     }
 
     return NextResponse.next();
 }
 
 export const config = {
-    matcher: ["/((?!login|_next|favicon.ico).*)"], // sve osim login, _next i favicon
+    matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

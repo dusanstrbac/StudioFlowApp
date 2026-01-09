@@ -2,6 +2,13 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react'; // Ikonice za strelice
 import KalendarModal from './KalendarModal';
+import { FirmaAsortimanDTO } from '@/types/firma';
+
+interface KalendarProps {
+  asortiman: FirmaAsortimanDTO[];
+  onDateSelect?: (date: Date) => void;
+  onTerminZakazan?: () => void;
+}
 
 // Helper funkcije za rad sa datumima
 const getDaysInMonth = (year: number, month: number) => {
@@ -27,13 +34,15 @@ const fullWeekDays = [
   'Nedelja', 'Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota'
 ];
 
-const Kalendar: React.FC = () => {
+const Kalendar = ({asortiman, onDateSelect, onTerminZakazan} : KalendarProps) => {
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);  // Selektovani datum
   const [currentMonth, setCurrentMonth] = useState<number>(today.getMonth()); // Trenutni mesec
   const [currentYear, setCurrentYear] = useState<number>(today.getFullYear()); // Trenutna godina
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false); // Da li je modal otvoren
   const [isSelectOpen, setIsSelectOpen] = useState<boolean>(false); // Da li je dropdown otvoren
+  const [tempMonth, setTempMonth] = useState<number>(currentMonth); // Koristi se za odabir meseca u modalu
+  const [tempYear, setTempYear] = useState<number>(currentYear); // Koristi se za odabir godine u modalu
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth + 1);
   const startDay = getStartDayOfMonth(currentYear, currentMonth + 1); // Dan početka meseca
@@ -41,9 +50,12 @@ const Kalendar: React.FC = () => {
 
   const handleDayClick = (day: number, month: number, year: number) => {
     const clickedDate = new Date(year, month, day);
-    setSelectedDate(clickedDate);  // Odmah postavi selektovani datum i ofarbi dan
+    setSelectedDate(clickedDate);
 
-    // Ako je kliknuti dan iz drugog meseca, menjamo mesec
+    if (onDateSelect) {
+      onDateSelect(clickedDate);
+    }
+
     if (month !== currentMonth) {
       setCurrentMonth(month);
       setCurrentYear(year);
@@ -81,33 +93,28 @@ const Kalendar: React.FC = () => {
   };
 
   const toggleSelect = () => {
+    if (!isSelectOpen) {
+      setTempMonth(currentMonth);
+      setTempYear(currentYear);
+    }
     setIsSelectOpen(prev => !prev);
-  };
-
-  const handleMonthChange = (month: number) => {
-    setCurrentMonth(month);
-    setIsSelectOpen(false);
-  };
-
-  const handleYearChange = (year: number) => {
-    setCurrentYear(year);
-    setIsSelectOpen(false);
   };
 
   const renderDays = () => {
     const days = [];
-    const prevMonthDays = getDaysInMonth(currentYear, currentMonth); // Broj dana u prethodnom mesecu
+    const prevMonthDays = getDaysInMonth(currentYear, currentMonth);
 
-    // Dodajemo dane iz prethodnog meseca ako mesec ne počinje od nedelje
     for (let i = 0; i < startDay; i++) {
       const prevMonthDay = prevMonthDays - startDay + i + 1;
+      // Pravilno računanje godine i meseca za prethodni mesec
+      const d = new Date(currentYear, currentMonth - 1, prevMonthDay);
       days.push(
         <button
           key={`prev-${i}`}
-          onClick={() => handleDayClick(prevMonthDay, currentMonth - 1 < 0 ? 11 : currentMonth - 1, currentMonth - 1 < 0 ? currentYear - 1 : currentYear)}
-          onDoubleClick={() => handleDayDoubleClick(prevMonthDay, currentMonth - 1 < 0 ? 11 : currentMonth - 1, currentMonth - 1 < 0 ? currentYear - 1 : currentYear)}
-          className="relative w-full h-24 flex items-center justify-center cursor-pointer border rounded-lg bg-gray-100 opacity-60">
-          {/* Prazni dani iz prethodnog meseca */}
+          onClick={() => handleDayClick(d.getDate(), d.getMonth(), d.getFullYear())}
+          onDoubleClick={() => handleDayDoubleClick(d.getDate(), d.getMonth(), d.getFullYear())}
+          className="relative w-full h-24 flex items-center justify-center cursor-pointer border rounded-lg bg-gray-100 opacity-60"
+        >
           <span className="absolute top-2 right-2 text-sm font-semibold text-gray-400">{prevMonthDay}</span>
         </button>
       );
@@ -131,25 +138,27 @@ const Kalendar: React.FC = () => {
     }
 
     // Dodajemo dane iz sledećeg meseca samo ako je poslednji dan meseca u petak ili pre
-    const nextMonthStart = 1;
-    const remainingCells = 7 - (endDay + 1); // Preostale ćelije koje treba popuniti
-    if (remainingCells > 0) {
-      for (let i = 0; i < remainingCells; i++) {
-        days.push(
-          <button
-            key={`next-${i}`}
-            onClick={() => handleDayClick(nextMonthStart + i, currentMonth + 1 > 11 ? 0 : currentMonth + 1, currentMonth + 1 > 11 ? currentYear + 1 : currentYear)}
-            onDoubleClick={() => handleDayDoubleClick(nextMonthStart + i, currentMonth + 1 > 11 ? 0 : currentMonth + 1, currentMonth + 1 > 11 ? currentYear + 1 : currentYear)}
-            className="relative w-full h-24 flex items-center justify-center cursor-pointer border rounded-lg bg-gray-100 opacity-60">
-            {/* Prazni dani iz sledećeg meseca */}
-            <span className="absolute top-2 right-2 text-sm font-semibold text-gray-400">{nextMonthStart + i}</span>
-          </button>
-        );
+    const remainingCells = 7 - (endDay + 1);
+      if (remainingCells > 0) {
+        for (let i = 0; i < remainingCells; i++) {
+          const nextMonthDay = i + 1;
+          // Pravilno računanje godine i meseca za sledeći mesec
+          const d = new Date(currentYear, currentMonth + 1, nextMonthDay);
+          days.push(
+            <button
+              key={`next-${i}`}
+              onClick={() => handleDayClick(d.getDate(), d.getMonth(), d.getFullYear())}
+              onDoubleClick={() => handleDayDoubleClick(d.getDate(), d.getMonth(), d.getFullYear())}
+              className="relative w-full h-24 flex items-center justify-center cursor-pointer border rounded-lg bg-gray-100 opacity-60"
+            >
+              <span className="absolute top-2 right-2 text-sm font-semibold text-gray-400">{nextMonthDay}</span>
+            </button>
+          );
+        }
       }
-    }
+      return days;
+    };
 
-    return days;
-  };
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -177,37 +186,67 @@ const Kalendar: React.FC = () => {
 
       {/* Dropdown za izbor meseca i godine */}
       {isSelectOpen && (
-        <div className="absolute top-16 bg-white shadow-md rounded-lg p-4 w-48 z-10">
-          <div>
-            <label className="block text-sm font-semibold">Izaberi mesec</label>
-            <select
-              value={currentMonth}
-              onChange={(e) => handleMonthChange(parseInt(e.target.value))}
-              className="w-full mt-2 border rounded-md p-2"
-            >
-              {months.map((month, index) => (
-                <option key={index} value={index}>{month}</option>
-              ))}
-            </select>
-          </div>
-          <div className="mt-4">
-            <label className="block text-sm font-semibold">Izaberi godinu</label>
-            <select
-              value={currentYear}
-              onChange={(e) => handleYearChange(parseInt(e.target.value))}
-              className="w-full mt-2 border rounded-md p-2 cursor-pointer"
-            >
-              {Array.from({ length: 20 }, (_, i) => currentYear - 10 + i).map((year) => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-          </div>
-          <div className="mt-4 text-center">
-            <button
-              onClick={() => setIsSelectOpen(false)}
-              className="w-full text-white bg-red-500 hover:bg-red-600 rounded-md p-2 cursor-pointer">
-              Zatvori
-            </button>
+        <div className="absolute left-1/2 -translate-x-1/2 top-16 bg-white shadow-2xl rounded-2xl p-6 w-[320px] z-50 border border-gray-100 animate-in fade-in zoom-in duration-200">
+          <div className="space-y-6">
+            {/* GODINA */}
+            <div>
+              <label className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-3 block">Godina</label>
+              <div className="flex items-center justify-between bg-gray-50 rounded-xl p-1">
+                <button 
+                  onClick={() => setTempYear(prev => prev - 1)}
+                  className="p-2 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <span className="font-bold text-lg text-gray-700">{tempYear}</span>
+                <button 
+                  onClick={() => setTempYear(prev => prev + 1)}
+                  className="p-2 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* MESECI */}
+            <div>
+              <label className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-3 block">Mesec</label>
+              <div className="grid grid-cols-3 gap-2">
+                {months.map((month, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setTempMonth(index)}
+                    className={`py-2 text-sm font-medium rounded-xl transition-all ${
+                      tempMonth === index 
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
+                      : 'hover:bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {month.substring(0, 3)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* DUGME ZA POTVRDU */}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setIsSelectOpen(false)}
+                className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+              >
+                Odustani
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentMonth(tempMonth);
+                  setCurrentYear(tempYear);
+                  setIsSelectOpen(false);
+                }}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-100"
+              >
+                Primeni
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -222,8 +261,15 @@ const Kalendar: React.FC = () => {
         {renderDays()}
       </div>
 
-      {isModalOpen && selectedDate && <KalendarModal date={selectedDate} onClose={closeModal} />}
-    </div>
+      {isModalOpen && selectedDate && (
+        <KalendarModal 
+          date={selectedDate} 
+          onClose={closeModal} 
+          asortiman={asortiman} 
+          onTerminZakazan={onTerminZakazan} 
+        />
+      )}    
+  </div>
   );
 };
 

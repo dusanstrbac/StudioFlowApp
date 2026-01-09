@@ -52,3 +52,14 @@ export interface FirmaInventarDTO {
     datumPoslednjeNabavke: string;
     nazivKategorije: string;
 }
+
+export interface Termin {
+  id?: number;
+  idFirme?: number;
+  idLokacije?: number;
+  idUsluge?: number;
+  idZaposlenog?: number;
+  datumTermina: string;
+  cena: number;
+  imeMusterije: string;
+}

@@ -25,6 +25,7 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dnevniTermini, setDnevniTermini] = useState<TerminDTO[]>([]);
   const [loadingTermini, setLoadingTermini] = useState(false);
+  const [mesecniTermini, setMesecniTermini] = useState<TerminDTO[]>([]);
 
   // Fetch asortimana - sada zavisi samo od ID-ja, ne od celog objekta
   useEffect(() => {
@@ -77,14 +78,41 @@ export default function Home() {
     fetchDnevneTermine(selectedDate);
   }, [selectedDate, fetchDnevneTermine]);
 
+  // Mesecni termini
+  const fetchMesecniTermini = useCallback(async (godina: number, mesec: number) => {
+    if (!idFirme || !idLokacije) return;
+    try {
+        const token = getCookie("AuthToken");
+        const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajZakazaneTermineZaMesec?idFirme=${idFirme}&idLokacije=${idLokacije}&mesec=${mesec + 1}&godina=${godina}`,
+            { headers: { "Authorization": `Bearer ${token}` } }
+        );
+        if (res.ok) {
+            const data = await res.json();
+            setMesecniTermini(data);
+        }
+    } catch (err) {
+        console.error("Greška:", err);
+    }
+  }, [idFirme, idLokacije]);
+
+  useEffect(() => {
+      const d = new Date();
+      fetchMesecniTermini(d.getFullYear(), d.getMonth());
+  }, [fetchMesecniTermini]);
+
+
+
   return (
     <div className="w-full">
       {/* Kalendar sekcija */}
       <div className="mb-6">
         <Kalendar 
-          asortiman={asortiman} 
+          asortiman={asortiman}
+          mesecniTermini={mesecniTermini}
           onDateSelect={(date) => setSelectedDate(date)}
           onTerminZakazan={() => fetchDnevneTermine(selectedDate)}
+          onMonthChange={(year, month) => fetchMesecniTermini(year, month)}
         />
       </div>
 

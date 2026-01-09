@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useEffect } from "react";
 import { ButtonProps, ButtonType } from "@/types/button";
 
@@ -15,47 +16,36 @@ const Button = ({
   disabled?: boolean;
   isActive?: boolean;
 }) => {
-
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Funkcija za odabir boje dugmeta u zavisnosti od aktivnog stanja
   const getButtonStyle = (buttonType: ButtonType, isActive: boolean) => {
     let baseStyle = '';
     let hoverStyle = '';
 
-    // Logika za boje dugmadi sa hover i aktivnim stanjima
     switch (buttonType) {
       case "pocetna":
-        baseStyle = isActive ? "bg-sky-800 text-white" : "bg-white text-sky-800 border-sky-800"; 
+        baseStyle = isActive ? "bg-sky-800 text-white border-sky-800" : "bg-white text-sky-800 border-sky-800"; 
         hoverStyle = "hover:bg-sky-700 hover:text-white hover:border-sky-700";
         break;
-      case "musterije":
-        baseStyle = isActive ? "bg-green-500 text-white" : "bg-white text-green-500 border-green-500"; 
-        hoverStyle = "hover:bg-green-400 hover:text-white hover:border-green-400";
-        break;
       case "izvodi":
-        baseStyle = isActive ? "bg-yellow-500 text-white" : "bg-white text-yellow-500 border-yellow-500"; 
+        baseStyle = isActive ? "bg-yellow-500 text-white border-yellow-500" : "bg-white text-yellow-500 border-yellow-500"; 
         hoverStyle = "hover:bg-yellow-400 hover:text-white hover:border-yellow-400";
         break;
       case "podesavanja":
-        baseStyle = isActive ? "bg-sky-500 text-white" : "bg-white text-sky-500 border-sky-500"; 
+        baseStyle = isActive ? "bg-sky-500 text-white border-sky-500" : "bg-white text-sky-500 border-sky-500"; 
         hoverStyle = "hover:bg-sky-400 hover:text-white hover:border-sky-400";
         break;
       case "salon":
-        baseStyle = isActive ? "bg-purple-300 text-white" : "bg-white text-purple-300 border-purple-300"; 
+        baseStyle = isActive ? "bg-purple-300 text-white border-purple-300" : "bg-white text-purple-300 border-purple-300"; 
         hoverStyle = "hover:bg-purple-200 hover:text-white hover:border-purple-400";
         break;
       case "nalog": 
-        baseStyle = isActive ? "bg-red-500 text-white" : "bg-white text-red-500 border-red-500"; 
+        baseStyle = isActive ? "bg-red-500 text-white border-red-500" : "bg-white text-red-500 border-red-500"; 
         hoverStyle = "hover:bg-red-400 hover:text-white hover:border-red-400"; 
-        break;
-      case "noviKorisnik":
-        baseStyle = isActive ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white" : "bg-white text-blue-500 border-blue-500";
-        hoverStyle = "hover:bg-gradient-to-r hover:from-blue-600 hover:to-indigo-600 hover:text-white hover:border-blue-600";  // Gradient and hover effects
         break;
       default:
         baseStyle = "bg-white text-black border-gray-300"; 
@@ -63,26 +53,40 @@ const Button = ({
         break;
     }
 
-    // Ako je dugme aktivno, koristi iste stilove kao hover
     return `${baseStyle} ${hoverStyle}`;
   };
 
-  if (!isMounted) {
-    return null; // Ne renderuj dok se komponenta ne montira
-  }
+  if (!isMounted) return null;
+
+  // Provera ukoliko postoji titl na dugmetu nece se staviti jos jedan zbog dupliranja teksta
+  const hasTitle = title && title !== "";
 
   return (
     <button
       onClick={action} 
       disabled={disabled} 
-      className={`w-full border py-1 text-md rounded-lg text-center cursor-pointer flex items-center justify-center space-x-2 
-        ${getButtonStyle(buttonType, isActive)} ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
+      className={`
+        w-full border py-2.5 text-md rounded-xl cursor-pointer flex items-center transition-all duration-200
+        ${hasTitle ? "justify-start px-4 space-x-3" : "justify-center px-0"} 
+        ${getButtonStyle(buttonType, isActive)} 
+        ${disabled ? "opacity-50 cursor-not-allowed" : ""} 
+        ${className}
+      `}
+      title={!hasTitle ? title : undefined}
     >
-      {/* Ikona */}
-      {icon && <span className="mr-2 text-inherit">{icon}</span>} {/* Koristi text-inherit za ikonu */}
+      {/* Ikonica */}
+      {icon && (
+        <span className={`flex items-center justify-center text-inherit shrink-0 transition-transform ${!hasTitle ? "scale-110" : ""}`}>
+          {icon}
+        </span>
+      )}
 
       {/* Tekst dugmeta */}
-      <span className="text-inherit">{title}</span> {/* Dodaj text-inherit da boje teksta budu ujednačene */}
+      {hasTitle && (
+        <span className="text-inherit font-semibold whitespace-nowrap overflow-hidden animate-in fade-in duration-500">
+          {title}
+        </span>
+      )}
     </button>
   );
 };

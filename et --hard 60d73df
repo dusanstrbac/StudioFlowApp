@@ -1,0 +1,21 @@
+[33m60d73df[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{0}: reset: moving to HEAD
+[33m60d73df[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{1}: commit: neki update sa glavnog racunara
+[33m6b8740c[m HEAD@{2}: commit: Update inventara
+[33mc3d90c3[m HEAD@{3}: commit: Novi token, api handling
+[33ma1f68e4[m HEAD@{4}: commit: Salon page
+[33mf076457[m HEAD@{5}: commit: Lokal settings
+[33m77cdd88[m HEAD@{6}: commit: Dodata sekcija tema, i zavrsena sekcija pomoc i podrska
+[33m9402a74[m HEAD@{7}: commit: Notifikacije settings update
+[33mdcf6f3d[m HEAD@{8}: commit: Kompletiran nalog page
+[33m8af7da0[m HEAD@{9}: commit: Podesavanja tab, nalog tab
+[33mffb52f7[m HEAD@{10}: commit: Regex error handling update
+[33m2ee235e[m HEAD@{11}: commit: Paginacija za MusterijeTable
+[33m8e0de4a[m HEAD@{12}: commit: Dodavanje korisnika, validacija podataka
+[33m33bb82b[m HEAD@{13}: commit: Pretraga musterija input
+[33mc1caf23[m HEAD@{14}: commit: Musterije page, musterije tabel, baza i izmena podataka musterije modal
+[33m62ae900[m HEAD@{15}: commit: TopNavigacija, zategnut layout i page.tsx
+[33m578799d[m HEAD@{16}: commit: Readme ispraznjen
+[33m192eba3[m HEAD@{17}: commit: Status lokala, update baze, zakazivanje termina
+[33mdb802f1[m HEAD@{18}: Branch: renamed refs/heads/master to refs/heads/main
+[33mdb802f1[m HEAD@{20}: commit: Inicijalizacija projekta, dummy baza, komponente
+[33m4e632a3[m HEAD@{21}: commit (initial): Initial commit from Create Next App

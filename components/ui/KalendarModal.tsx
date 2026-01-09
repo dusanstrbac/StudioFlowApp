@@ -1,8 +1,7 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import Button from './Button';
-import { ClipboardClock, ClipboardList, Clock, CreditCard, Package, Receipt, ShoppingCart, Trash2, User } from 'lucide-react';
+import { ClipboardClock, ClipboardList, Clock, Package, Receipt, ShoppingCart, Trash2, User, X } from 'lucide-react';
 import ZakazivanjeTermina from '../ZakazivanjeTermina';
 import { Client } from '@/types/klijenti';
 import { FirmaAsortimanDTO } from '@/types/firma';
@@ -54,9 +53,31 @@ const KalendarModal: React.FC<KalendarModalProps> = ({ date, onClose, asortiman,
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [activeTab, setActiveTab] = useState<'termini' | 'troskovi'>('termini');
     const [isTrosakOpen, setIsTrosakOpen] = useState(false);
+    const [sidebarWidth, setSidebarWidth] = useState('240px');
 
     const otvoriZakazivanjeModal = useCallback(() => setIsZakazivanjeOpen(true), []);
     const zatvoriZakazivanjeModal = useCallback(() => setIsZakazivanjeOpen(false), []);
+
+
+    useEffect(() => {
+        const updateWidth = () => {
+            const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+            // Na mobilnom je širina 0 jer sidebar nije fiksno sa strane
+            if (window.innerWidth < 1024) {
+                setSidebarWidth('0px');
+            } else {
+                setSidebarWidth(isCollapsed ? '80px' : '240px');
+            }
+        };
+
+        updateWidth(); // Inicijalno proveri
+        window.addEventListener('sidebar_changed', updateWidth);
+        window.addEventListener('resize', updateWidth);
+        return () => {
+            window.removeEventListener('sidebar_changed', updateWidth);
+            window.removeEventListener('resize', updateWidth);
+        };
+    }, []);
 
     const toggleDeleteMode = useCallback(() => {
         if (!isDeleteMode && clients.length === 0) {
@@ -280,188 +301,199 @@ const KalendarModal: React.FC<KalendarModalProps> = ({ date, onClose, asortiman,
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center z-50">
+        <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-0 sm:p-4 transition-all duration-300 ease-in-out"
+            style={{ 
+                // Desktop: pomera se u desno zbog shodno state-u sidebara
+                paddingLeft: window.innerWidth >= 1024 ? sidebarWidth : '0px',
+                // Mobilni: spusta se ceo kontejner ispod headera
+                paddingTop: window.innerWidth < 1024 ? '64px' : '0px'
+            }}
+        >
+            {/* Overlay koji služi za zatvaranje na klik van modala */}
+            <div className="absolute inset-0 -z-10" onClick={onClose} />
+
             <motion.div
-                className="bg-white w-[90%] h-[90%] p-8 rounded-lg shadow-lg flex flex-col"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                layout
+                className="bg-white w-full h-full sm:w-[95%] md:w-[90%] lg:w-[85%] xl:w-[75%] sm:h-[90vh] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                layout // Dodato za glatku promenu veličine unutar modala
             >
-                <div className="flex justify-between items-center mb-4 w-full border-b border-gray-300 pb-2">
-                    <h2 className="text-2xl font-bold">{formattedDate}</h2>
-                    <button onClick={onClose} className="text-2xl text-gray-600 hover:text-gray-900 cursor-pointer">X</button>
+                {/* Header - Bolji padding za mobilni */}
+                <div className="flex justify-between items-center px-4 py-4 sm:px-8 border-b border-gray-100 bg-white">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800">{formattedDate}</h2>
+                    <button 
+                        onClick={onClose} 
+                        className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+                    >
+                        <X size={24} />
+                    </button>
                 </div>
 
-                <div className="flex gap-6 mb-6 border-b border-gray-200">
+                {/* Tabs - Centrirano na mobilnom */}
+                <div className="flex px-4 sm:px-8 bg-white border-b border-gray-100">
                     <button
                         onClick={() => setActiveTab('termini')}
-                        className={`pb-3 text-sm font-semibold transition-all ${activeTab === 'termini' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex-1 sm:flex-none py-4 px-4 text-xs sm:text-sm font-bold transition-all border-b-2 ${
+                            activeTab === 'termini' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+                        }`}
                     >
                         REZERVACIJE ({clients.length})
                     </button>
                     <button
                         onClick={() => setActiveTab('troskovi')}
-                        className={`pb-3 text-sm font-semibold transition-all ${activeTab === 'troskovi' ? 'border-b-2 border-red-500 text-red-600' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex-1 sm:flex-none py-4 px-4 text-xs sm:text-sm font-bold transition-all border-b-2 ${
+                            activeTab === 'troskovi' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+                        }`}
                     >
-                        TROŠKOVI / FAKTURE ({expenses.length})
+                        TROŠKOVI ({expenses.length})
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto overflow-x-hidden pt-2">
+                {/* Sadržaj - Skrolabilna zona */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-gray-50/50">
                     {loading ? (
-                        <div className="flex justify-center items-center h-full">
-                            <p className="text-gray-500 animate-pulse">Učitavanje podataka...</p>
-                        </div>
-                    ) : activeTab === 'termini' ? (
-                        <div className="flex flex-col gap-3">
-                            {clients.length === 0 ? (
-                                <p className="text-gray-400 italic">Nema zakazanih termina za ovaj datum.</p>
-                            ) : (
-                                <AnimatePresence mode="popLayout">
-                                    {clients.map((client) => (
-                                        <motion.div
-                                            key={client.id}
-                                            layout
-                                            initial={{ opacity: 0, x: 20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -100, transition: { duration: 0.3 } }}
-                                            className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border rounded-lg shadow-sm bg-white w-full transition-shadow hover:shadow-md"
-                                        >
-                                            <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-                                                <div className="flex items-center gap-2">
-                                                    <User className="w-5 h-5 text-gray-400" />
-                                                    <span className="font-semibold text-gray-800">{client.name}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Package className="w-5 h-5 text-purple-400" />
-                                                    <span className="text-gray-500 text-sm">{client.service}</span>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center min-w-[120px] justify-end mt-2 sm:mt-0">
-                                                {!isDeleteMode ? (
-                                                    <motion.div key="info" className="flex gap-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <Clock className="w-4 h-4 text-blue-500" />
-                                                            <span className="text-blue-600 font-medium">{client.time}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <CreditCard className="w-4 h-4 text-green-500" />
-                                                            <span className="text-green-600 font-bold">{Number(client.price).toLocaleString()} RSD</span>
-                                                        </div>
-                                                    </motion.div>
-                                                ) : (
-                                                    <motion.button
-                                                        key="delete"
-                                                        initial={{ opacity: 0, scale: 0.5 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        whileTap={{ scale: 0.9 }}
-                                                        onClick={() => obrisiTermin(client.id)}
-                                                        className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-600 hover:text-white transition-colors cursor-pointer"
-                                                    >
-                                                        <Trash2 size={20} />
-                                                    </motion.button>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </AnimatePresence>
-                            )}
+                        <div className="flex flex-col justify-center items-center h-full gap-3">
+                            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                            <p className="text-gray-500 text-sm">Učitavanje podataka...</p>
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-3">
-                            {expenses.length === 0 ? (
-                                <p className="text-gray-400 italic">Nema upisanih troškova / faktura.</p>
-                            ) : (
-                                <AnimatePresence mode="popLayout">
-                                    {expenses.map((exp) => (
-                                        <motion.div
-                                            key={exp.id}
-                                            layout
-                                            initial={{ opacity: 0, x: 20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, scale: 0.9 }}
-                                            className="relative flex justify-between items-center p-4 border border-red-100 rounded-lg shadow-sm bg-red-50/30 w-full"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="p-2 bg-red-100 rounded-full text-red-600">
-                                                    <ShoppingCart size={20} />
+                        <div className="max-w-5xl mx-auto space-y-3">
+                            <AnimatePresence mode="popLayout">
+                                {activeTab === 'termini' ? (
+                                    clients.length === 0 ? (
+                                        <p className="text-center text-gray-400 py-10 italic">Nema zakazanih termina.</p>
+                                    ) : (
+                                        clients.map((client) => (
+                                            <motion.div
+                                                key={client.id}
+                                                layout
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between gap-2"
+                                            >
+                                                {/* LEVA STRANA: Ime i Usluga */}
+                                                <div className="flex items-center gap-3 min-w-0 flex-1"> 
+                                                    <div className="bg-blue-50 p-2 rounded-lg text-blue-500 hidden xs:block shrink-0">
+                                                        <User size={18} />
+                                                    </div>
+                                                    <div className="min-w-0"> {/* min-w-0 sprečava pucanje layouta kod dugih imena */}
+                                                        <p className="font-bold text-gray-900 text-sm sm:text-base truncate">
+                                                            {client.name}
+                                                        </p>
+                                                        <div className="flex items-center gap-1 text-gray-500 text-[11px] sm:text-xs">
+                                                            <Package size={12} className="shrink-0" />
+                                                            <span className="truncate">{client.service}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-semibold text-gray-800">{exp.description}</p>
-                                                    <p className="text-[10px] bg-red-200 text-red-700 px-1.5 py-0.5 rounded font-bold uppercase w-fit">
-                                                        {exp.category || 'Ostalo'}
-                                                    </p>
-                                                </div>
-                                            </div>
 
-                                            <div className="flex items-center gap-4">
-                                                {!isDeleteMode ? (
-                                                    <span className="font-bold text-red-600 text-lg">
-                                                        -{Number(exp.amount).toLocaleString()} RSD
-                                                    </span>
+                                                {/* DESNA STRANA: Vreme i Cena - Sada uvek u liniji */}
+                                                <div className="flex items-center gap-3 shrink-0">
+                                                    {!isDeleteMode ? (
+                                                        <div className="text-right">
+                                                            <div className="flex items-center justify-end gap-1 text-blue-600 font-bold text-sm">
+                                                                <Clock size={14} />
+                                                                <span>{client.time}</span>
+                                                            </div>
+                                                            <div className="text-green-600 font-semibold text-[11px] sm:text-sm whitespace-nowrap">
+                                                                {Number(client.price).toLocaleString()} RSD
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => obrisiTermin(client.id)}
+                                                            className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        ))
+                                    )
+                                ) : (
+                                    expenses.length === 0 ? (
+                                        <p className="text-center text-gray-400 py-10 italic">Nema upisanih troškova.</p>
+                                    ) : (
+                                        expenses.map((exp) => (
+                                            <motion.div
+                                                key={exp.id}
+                                                layout
+                                                className="bg-white p-4 rounded-xl border border-red-100 shadow-sm flex justify-between items-center"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-red-50 rounded-lg text-red-500">
+                                                        <ShoppingCart size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-gray-800">{exp.description}</p>
+                                                        <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold uppercase">
+                                                            {exp.category || 'Ostalo'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                {isDeleteMode ? (
+                                                    <button onClick={() => obrisiTrosak(exp.id)} className="p-2 text-red-600"><Trash2 size={20} /></button>
                                                 ) : (
-                                                    <motion.button
-                                                        initial={{ opacity: 0, scale: 0.5 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        onClick={() => obrisiTrosak(exp.id)}
-                                                        className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-600 hover:text-white transition-colors cursor-pointer"
-                                                    >
-                                                        <Trash2 size={20} />
-                                                    </motion.button>
+                                                    <span className="font-bold text-red-600">-{Number(exp.amount).toLocaleString()}</span>
                                                 )}
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </AnimatePresence>
-                            )}
+                                            </motion.div>
+                                        ))
+                                    )
+                                )}
+                            </AnimatePresence>
                         </div>
                     )}
                 </div>
 
-                <div className="flex gap-2 border-t border-gray-300 pt-4 mt-4">
-                    <Button
-                        title={isDeleteMode ? "Završi" : activeTab === 'termini' ? "Otkaži termin" : "Obriši trošak"}
-                        icon={<Trash2 size={18} />}
-                        action={toggleDeleteMode}
-                        className={isDeleteMode ? "bg-red-500 text-white" : ""}
-                    />
-                    <Button
-                        title={activeTab === 'termini' ? "Zakaži termin" : "Dodaj trošak"}
-                        icon={activeTab === 'termini' ? <ClipboardClock /> : <Receipt />}
-                        className="transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white"
-                        action={activeTab === 'termini' ? otvoriZakazivanjeModal : () => setIsTrosakOpen(true)}
-                    />
-                    <Button
-                        title="Štampaj listing"
-                        icon={<ClipboardList />}
-                        className="transition-all duration-200 ease-in-out hover:bg-yellow-500 hover:text-white"
-                        action={stampajListing}
-                    />
+                {/* Footer - Fiksan na dnu */}
+                <div className="p-4 sm:p-6 bg-white border-t border-gray-100 flex gap-3 sm:justify-end items-center">
+                    
+                    {/* Obriši dugme */}
+                    <button
+                        onClick={toggleDeleteMode}
+                        className={`
+                            flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all text-sm
+                            flex-1 sm:flex-none sm:min-w-[120px]
+                            ${isDeleteMode ? 'bg-red-600 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}
+                        `}
+                    >
+                        <Trash2 size={18} />
+                        <span>{isDeleteMode ? "Završi" : "Obriši"}</span>
+                    </button>
+
+                    {/* Zakaži / Trošak dugme */}
+                    <button
+                        onClick={activeTab === 'termini' ? otvoriZakazivanjeModal : () => setIsTrosakOpen(true)}
+                        className="
+                            flex-1 sm:flex-none sm:min-w-[140px]
+                            flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all text-sm shadow-sm
+                        "
+                    >
+                        {activeTab === 'termini' ? <ClipboardClock size={18} /> : <Receipt size={18} />}
+                        <span>{activeTab === 'termini' ? "Zakaži" : "Trošak"}</span>
+                    </button>
+
+                    {/* Štampaj dugme */}
+                    <button
+                        onClick={stampajListing}
+                        className="
+                            flex-1 sm:flex-none sm:min-w-[120px]
+                            flex items-center justify-center gap-2 px-4 py-3 bg-yellow-500 text-white rounded-xl font-bold hover:bg-yellow-600 transition-all text-sm shadow-sm
+                        "
+                    >
+                        <ClipboardList size={18} />
+                        <span>Štampaj</span>
+                    </button>
                 </div>
 
                 {isZakazivanjeOpen && (
-                    <ZakazivanjeTermina
-                        onClose={zatvoriZakazivanjeModal}
-                        date={sqlDate}
-                        asortiman={asortiman}
-                        onTerminZakazi={() => {
-                            fetchTermini();
-                            if (onTerminZakazan) onTerminZakazan();
-                        }}
-                    />
+                    <ZakazivanjeTermina onClose={zatvoriZakazivanjeModal} date={sqlDate} asortiman={asortiman} onTerminZakazi={() => { fetchTermini(); onTerminZakazan?.(); }} />
                 )}
-
                 {isTrosakOpen && (
-                    <UnosTroskaModal
-                        date={sqlDate}
-                        onClose={() => setIsTrosakOpen(false)}
-                        onSuccess={() => {
-                            fetchTroskovi();
-                        }}
-                    />
+                    <UnosTroskaModal date={sqlDate} onClose={() => setIsTrosakOpen(false)} onSuccess={fetchTroskovi} />
                 )}
             </motion.div>
         </div>

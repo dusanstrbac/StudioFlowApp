@@ -9,6 +9,7 @@ import { dajKorisnikaIzTokena, KorisnikToken } from "@/lib/auth";
 export default function Nalog() {
   const router = useRouter();
   const [korisnik, setKorisnik] = useState<Korisnik | null>(null);
+  const [ucinak, setUcinak] = useState({ trenutni: 0, cilj: 150 });
 
   const formatirajDatum = (datum: string) => {
     return new Date(datum).toLocaleDateString("sr-RS");
@@ -63,6 +64,57 @@ export default function Nalog() {
     deleteCookie("AuthToken");
     router.push("/login");
   };
+
+  // Fetchovanje ucinka radnika
+  useEffect(() => {
+    const fetchPodatke = async () => {
+      try {
+        const token = getCookie("AuthToken");
+        if (!token || typeof token !== "string") return;
+
+        const korisnikIzTokena = dajKorisnikaIzTokena(token);
+        if (!korisnikIzTokena) return;
+
+        // Inicijalno postavljanje iz tokena
+        setKorisnik({
+          ime: korisnikIzTokena.ime,
+          uloga: korisnikIzTokena.uloga,
+          email: korisnikIzTokena.email,
+          telefon: korisnikIzTokena.telefon,
+          datumKreiranja: "",
+          godisnjiOdmor: [],
+        });
+
+        // 1️⃣ Fetch podataka o korisniku
+        const resKorisnik = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Korisnik/DajKorisnika?emailKorisnika=${korisnikIzTokena.email}`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        if (resKorisnik.ok) {
+          const data = await resKorisnik.json();
+          setKorisnik(prev => ({ ...prev, ...data }));
+        }
+
+        // 2️⃣ Fetch učinka (Ovo je tvoj novi endpoint)
+        const resUcinak = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Korisnik/DajUcinakKorisnika?email=${korisnikIzTokena.email}`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        if (resUcinak.ok) {
+          const ucinakData = await resUcinak.json();
+          setUcinak({
+            trenutni: ucinakData.trenutniUcinak,
+            cilj: ucinakData.cilj
+          });
+        }
+
+      } catch (error) {
+        console.error("Greška pri učitavanju podataka:", error);
+      }
+    };
+
+    fetchPodatke();
+  }, []);
+
+  const procenat = Math.min((ucinak.trenutni / ucinak.cilj) * 100, 100);
 
   return (
     <div className="max-w-5xl mx-auto mt-10 p-6">
@@ -155,11 +207,21 @@ export default function Nalog() {
             <ClipboardList className="w-8 h-8 text-sky-500" />
           </div>
           <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Učinak (Ovaj mesec)</p>
-          <p className="text-3xl font-black text-gray-800 mt-1">124</p>
+          
+          {/* Dinamički broj učinka */}
+          <p className="text-3xl font-black text-gray-800 mt-1">{ucinak.trenutni}</p>
           <p className="text-sm text-gray-500 font-medium">Odrađenih termina</p>
+          
           <div className="mt-4 w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-            <div className="bg-sky-500 h-full w-[75%] rounded-full"></div>
+            {/* Dinamički progres bar sa animacijom */}
+            <div 
+              className="bg-sky-500 h-full rounded-full transition-all duration-1000 ease-out" 
+              style={{ width: `${procenat}%` }}
+            ></div>
           </div>
+          <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase">
+            Cilj: {ucinak.cilj} termina
+          </p>
         </div>
       </div>
 

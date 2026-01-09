@@ -7,6 +7,7 @@ import { getCookie } from "cookies-next";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { BadgeEuro, Briefcase, Clock, MapPin, User, X } from "lucide-react";
 
 interface ZakazivanjeTerminaProps {
   onClose: () => void;
@@ -143,114 +144,134 @@ const ZakazivanjeTermina = ({ onClose, date, asortiman, onTerminZakazi }: Zakazi
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center z-50">
-      <motion.div
-        className="bg-white w-[90%] h-[90%] p-8 rounded-lg shadow-lg overflow-y-auto flex flex-col"
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 50 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-      >
-        <div className="flex justify-between items-center mb-4 w-full border-b border-gray-300 pb-2">
-          <h2 className="text-2xl font-bold">Zakazivanje termina za {formattedDate}</h2>
-          <button onClick={onClose} className="text-2xl text-gray-600 hover:text-gray-900 cursor-pointer">X</button>
-        </div>
-
-        <div className="mt-4">
-          <label className="font-bold block">Ime i Prezime</label>
-          <input
-            type="text"
-            value={userName}
-            onChange={(e) => setUserName(e.target.value)}
-            className={`w-full p-2 border rounded-md ${errors.userName ? "border-red-500" : "border-gray-300"}`}
-            placeholder="Unesite ime i prezime korisnika"
-          />
-        </div>
-
-        <div className="flex flex-col gap-4 mt-6">
-          <h3 className="font-bold">Odaberite uslugu</h3>
-          <select
-            value={selectedService}
-            onChange={(e) => setSelectedService(e.target.value)}
-            className={`w-full p-2 border rounded-md cursor-pointer ${errors.selectedService ? "border-red-500" : "border-gray-300"}`}
-          >
-            <option value="" disabled>Izaberite uslugu</option>
-            {filteredAsortiman.map((usluga) => (
-              <option key={usluga.idUsluge} value={usluga.idUsluge}>
-                {usluga.nazivUsluge}
-              </option>
-            ))}
-          </select>
-
-          <div className="mt-4">
-            <label className="font-bold block">Vreme dolaska</label>
-            <input
-              type="time"
-              value={arrivalTime}
-              onChange={(e) => setArrivalTime(e.target.value)}
-              className={`w-full p-2 border rounded-md ${errors.arrivalTime ? "border-red-500" : "border-gray-300"}`}
-            />
-          </div>
-
-          <div className="mt-2">
-            <label className="font-bold block">Cena usluge (RSD)</label>
-            <input
-              type="number"
-              value={customCena === "" ? "" : customCena}
-              onChange={(e) => {
-                const value = e.target.value;
-                setCustomCena(value === "" ? "" : Number(value));
-              }}
-              className="w-full p-2 border rounded-md"
-              placeholder="Unesite cenu usluge"
-            />
-          </div>
-
-          <div className="mt-4">
-            <label className="font-bold block">Adresa salona</label>
-            <select
-              value={selectedAddress ?? ''}
-              onChange={(e) => {
-                setSelectedAddress(Number(e.target.value));
-                setSelectedService('');
-                setCustomCena('');
-              }}
-              disabled={isReadOnly}
-              className={`w-full p-2 border rounded-md 
-                ${errors.selectedAddress ? "border-red-500" : "border-gray-300"} 
-                ${isReadOnly ? "bg-gray-200 cursor-not-allowed" : "cursor-pointer"}
-              `}
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center z-[100] p-0 sm:p-4 transition-all duration-300">
+            <div className="absolute inset-0 -z-10" onClick={onClose} />
+            
+            <motion.div
+                className="bg-white w-full h-[90vh] sm:h-auto sm:max-w-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                initial={{ opacity: 0, y: "100%" }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: "100%" }}
             >
-              <option value="" disabled>Izaberite adresu</option>
-              {addresses.map((address) => (
-                <option key={address.id} value={address.id}>
-                  {address.nazivLokacije} - {address.adresa}
-                </option>
-              ))}
-            </select>
-          </div>
+                {/* Header */}
+                <div className="flex justify-between items-center px-6 py-5 border-b border-gray-100">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-800">Novi termin</h2>
+                        <p className="text-sm text-blue-600 font-medium">{formattedDate}</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Sadržaj Forme */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                    
+                    {/* Ime i Prezime */}
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <User size={16} className="text-blue-500" /> Ime i prezime korisnika
+                        </label>
+                        <input
+                            type="text"
+                            value={userName}
+                            onChange={(e) => setUserName(e.target.value)}
+                            className={`w-full p-3 bg-gray-50 border rounded-xl outline-none transition-all ${errors.userName ? "border-red-500 ring-2 ring-red-50" : "border-gray-200 focus:border-blue-500 focus:bg-white"}`}
+                            placeholder="Npr. Marko Marković"
+                        />
+                    </div>
+
+                    {/* Dve kolone za Vreme i Cenu na desktopu */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                <Clock size={16} className="text-blue-500" /> Vreme dolaska
+                            </label>
+                            <input
+                                type="time"
+                                value={arrivalTime}
+                                onChange={(e) => setArrivalTime(e.target.value)}
+                                className={`w-full p-3 bg-gray-50 border rounded-xl outline-none transition-all ${errors.arrivalTime ? "border-red-500" : "border-gray-200 focus:border-blue-500 focus:bg-white"}`}
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                <BadgeEuro size={16} className="text-blue-500" /> Cena usluge (RSD)
+                            </label>
+                            <input
+                                type="number"
+                                value={customCena}
+                                onChange={(e) => setCustomCena(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                placeholder="0"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Izbor Usluge */}
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <Briefcase size={16} className="text-blue-500" /> Tip usluge
+                        </label>
+                        <div className="grid grid-cols-1 gap-2">
+                            {filteredAsortiman.length === 0 ? (
+                                <p className="text-xs text-gray-400 italic">Prvo odaberite lokaciju...</p>
+                            ) : (
+                                <select
+                                    value={selectedService}
+                                    onChange={(e) => setSelectedService(e.target.value)}
+                                    className={`w-full p-3 bg-gray-50 border rounded-xl outline-none transition-all cursor-pointer ${errors.selectedService ? "border-red-500" : "border-gray-200 focus:border-blue-500 focus:bg-white"}`}
+                                >
+                                    <option value="" disabled>Izaberi uslugu</option>
+                                    {filteredAsortiman.map((u) => (
+                                        <option key={u.idUsluge} value={u.idUsluge}>{u.nazivUsluge}</option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Adresa Lokacije */}
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <MapPin size={16} className="text-blue-500" /> Lokacija salona
+                        </label>
+                        <select
+                            value={selectedAddress ?? ''}
+                            onChange={(e) => {
+                                setSelectedAddress(Number(e.target.value));
+                                setSelectedService('');
+                            }}
+                            disabled={isReadOnly}
+                            className={`w-full p-3 bg-gray-50 border rounded-xl outline-none transition-all appearance-none cursor-pointer ${errors.selectedAddress ? "border-red-500" : "border-gray-200 focus:border-blue-500 focus:bg-white"} ${isReadOnly && "opacity-60"}`}
+                        >
+                            <option value="" disabled>Izaberi lokaciju</option>
+                            {addresses.map((a) => (
+                                <option key={a.id} value={a.id}>{a.nazivLokacije} - {a.adresa}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Footer Akcije */}
+                <div className="p-6 bg-white border-t border-gray-100 flex flex-col sm:flex-row gap-3">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 px-6 py-3 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-all"
+                    >
+                        Otkaži
+                    </button>
+                    <button
+                        onClick={rezervisiTermin}
+                        className="flex-1 px-6 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95"
+                    >
+                        Zakaži termin
+                    </button>
+                </div>
+            </motion.div>
         </div>
-        
-        {/* Action Dugmad */}
-        <div className="mt-auto flex gap-2 border-t border-gray-300 pt-4 justify-end">
-          <button
-            className="bg-red-500 text-white py-2 px-6 rounded-lg cursor-pointer 
-                      transition-all duration-200 ease-in-out hover:bg-red-600 hover:scale-105"
-            onClick={onClose}
-          >
-            Otkaži
-          </button>
-        <button
-          className="bg-green-500 text-white py-2 px-6 rounded-lg cursor-pointer 
-                    transition-all duration-200 ease-in-out hover:bg-green-600 hover:scale-105"
-          onClick={rezervisiTermin}
-        >
-          Zakaži
-        </button>
-      </div>
-      </motion.div>
-    </div>
-  );
+    );
 };
 
 export default ZakazivanjeTermina;

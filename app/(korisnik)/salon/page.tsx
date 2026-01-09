@@ -3,6 +3,7 @@ import DodajInventar from "@/components/DodajInventar";
 import UslugaModal from "@/components/UslugaModal";
 import { Firma, FirmaAsortimanDTO, FirmaInventarDTO, Lokacije } from "@/types/firma";
 import { getCookie } from "cookies-next";
+import { motion } from "framer-motion";
 import { Edit2, Trash2 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -348,44 +349,83 @@ export default function SalonPage() {
     };
 
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Salon</h1> 
-            <div ref={containerRef} className="relative flex justify-between items-end mb-6 border-b pb-2">
-                <div className="flex gap-4">
-                    {tabs.map((tab, index) => (
-                        <button
-                            key={tab}
-                            ref={(el) => { tabRefs.current[index] = el; }} 
-                            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab ? 'text-blue-600' : 'text-gray-600'}`}
-                            onClick={() => setActiveTab(tab)}
-                        >
-                            {tab}
-                        </button>
-                    ))}
+        <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+            {/* Header Sekcija: Naslov, Selektor Salona i Tabovi */}
+            <div className="flex flex-col gap-4 mb-8 border-b border-gray-100">
+                {/* Gornji red: Naslov i Selektor */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 px-1">Salon</h1>
+                    
+                    {selectedSalon && (
+                        <div className="w-full sm:w-auto px-1"> 
+                            <select
+                                value={selectedSalonId ?? ''}
+                                onChange={(e) => setSelectedSalonId(parseInt(e.target.value))}
+                                className="w-full sm:min-w-[200px] p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 ring-blue-50 transition-all cursor-pointer appearance-none"
+                            >
+                                {salons.map((salon) => (
+                                    <option key={salon.id} value={salon.id}>
+                                        {firma?.naziv} - {salon.nazivLokacije}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1.5 ml-1 hidden sm:block">
+                                {selectedSalon.adresa}
+                            </p>
+                        </div>
+                    )}
                 </div>
-                {selectedSalon && (
-                    <div className="text-right"> 
-                        <select
-                            value={selectedSalonId ?? ''}
-                            onChange={(e) => setSelectedSalonId(parseInt(e.target.value))}
-                            className="p-1 border rounded text-sm bg-gray-50"
-                        >
-                            {salons.map((salon) => (
-                                <option key={salon.id} value={salon.id}>{firma?.naziv} - {salon.nazivLokacije}</option>
-                            ))}
-                        </select>
-                        <p className="text-xs text-gray-500 mt-1">{selectedSalon.adresa}</p>
+
+                {/* Navigacija (Tabovi) sa Horizontalnim Scrollom na mobilnom */}
+                <div className="relative overflow-x-auto no-scrollbar scroll-smooth" ref={containerRef}>
+                    <div className="flex min-w-max">
+                        {tabs.map((tab, index) => (
+                            <button
+                                key={tab}
+                                ref={(el) => { tabRefs.current[index] = el; }} 
+                                className={`
+                                    px-4 sm:px-6 py-3 text-sm font-bold transition-all duration-300
+                                    ${activeTab === tab ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}
+                                `}
+                                onClick={() => setActiveTab(tab)}
+                            >
+                                {tab}
+                            </button>
+                        ))}
                     </div>
-                )}
-                <span className="absolute bottom-0 h-0.5 bg-blue-600 transition-all" style={{ left: underlineStyle.left, width: underlineStyle.width }} />
+                    
+                    {/* Animirana linija ispod aktivnog taba */}
+                    <motion.span 
+                        className="absolute bottom-0 h-0.5 bg-blue-600 rounded-full"
+                        animate={{ 
+                            left: underlineStyle.left, 
+                            width: underlineStyle.width 
+                        }}
+                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                </div>
             </div>
 
-            <div className="space-y-4">{renderTabContent()}</div>
+            {/* Glavni Sadržaj Taba */}
+            <div className="min-h-[400px]">
+                <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    {renderTabContent()}
+                </motion.div>
+            </div>
 
+            {/* Modali */}
             <UslugaModal 
                 isOpen={isUslugeModalOpen} 
                 onClose={() => setIsUslugeModalOpen(false)} 
-                onSave={() => toast.success("Registrovano")}
+                onSave={() => {
+                    toast.success("Usluga registrovana");
+                    // Ovde možeš dodati re-fetch asortimana ako je potrebno
+                }}
                 salons={salons} 
                 selectedSalonId={selectedSalonId ?? 0} 
                 firmaId={firma?.id ?? 0} 
@@ -394,7 +434,10 @@ export default function SalonPage() {
             <DodajInventar 
                 isOpen={isInventarModalOpen} 
                 onClose={() => setInventoryModalOpen(false)} 
-                onSave={() => toast.success("Dodato")}
+                onSave={() => {
+                    toast.success("Artikal dodat");
+                    // Ovde možeš dodati re-fetch inventara
+                }}
                 salons={salons} 
                 selectedSalonId={selectedSalonId || 0} 
                 firmaId={firma?.id || 0} 

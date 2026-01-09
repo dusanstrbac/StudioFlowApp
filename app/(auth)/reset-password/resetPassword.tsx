@@ -45,69 +45,103 @@ export default function ResetPassword() {
       });
 
       if (res.ok) {
-        toast.success("Lozinka je uspešno promenjena! Preusmeravamo vas na prijavu...");
-        setTimeout(() => router.push("/login"), 3000);
+        toast.success("Lozinka je uspešno promenjena!");
+        setTimeout(() => router.push("/login"), 2000);
       } else {
-        // Pokušavamo da izvučemo poruku o grešci sa servera, ako postoji
         const errorData = await res.json().catch(() => ({}));
         toast.error(errorData.message || "Greška prilikom promene lozinke.");
       }
-    } catch (error: unknown) { // FIKSIRANO: Umesto any koristimo unknown
+    } catch (error: unknown) {
       console.error("Reset error:", error);
-      toast.error("Došlo je do greške u komunikaciji sa serverom.");
-      
-      // Umesto throw new Error, bolje je samo logovati jer smo već obavestili korisnika preko toast-a
+      toast.error("Greška u komunikaciji sa serverom.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // UI za nevalidan token - stilizovan kao i ostatak aplikacije
   if (!token) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-red-500 font-bold">Nevalidan link za resetovanje lozinke.</p>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6 text-center">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-sm">
+          <div className="text-red-500 text-5xl mb-4 text-center">⚠️</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Link nije validan</h2>
+          <p className="text-gray-600 mb-6">Link za resetovanje lozinke je istekao ili je neispravan.</p>
+          <button 
+            onClick={() => router.push("/login")}
+            className="w-full py-2 bg-gray-800 text-white rounded-xl font-medium"
+          >
+            Nazad na prijavu
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">Postavite novu lozinku</h1>
-        
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Nova lozinka</label>
-            <input
-              type="password"
-              {...register("novaLozinka")}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                errors.novaLozinka ? "border-red-500 focus:ring-red-300" : "border-gray-300 focus:ring-blue-300"
-              }`}
-            />
-            {errors.novaLozinka && <p className="text-red-500 text-sm mt-1">{errors.novaLozinka.message}</p>}
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8">
+        {/* Na mobilnom (ispod sm) skidamo shadow i border radi čistijeg izgleda */}
+        <div className="bg-white py-8 px-6 shadow-none sm:shadow-xl rounded-none sm:rounded-2xl border-0 sm:border border-gray-100 transition-all">
+          
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+              Nova lozinka
+            </h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Unesite i potvrdite vašu novu lozinku za StudioFlow.
+            </p>
           </div>
+          
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nova lozinka</label>
+              <input
+                type="password"
+                {...register("novaLozinka")}
+                placeholder="Najmanje 6 karaktera"
+                className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl transition-all focus:outline-none focus:ring-2 focus:bg-white ${
+                  errors.novaLozinka 
+                    ? "border-red-500 focus:ring-red-100" 
+                    : "border-gray-200 focus:ring-blue-100 focus:border-blue-500"
+                }`}
+              />
+              {errors.novaLozinka && (
+                <p className="text-red-500 text-xs mt-1.5 ml-1 italic">{errors.novaLozinka.message}</p>
+              )}
+            </div>
 
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Potvrdite lozinku</label>
-            <input
-              type="password"
-              {...register("potvrdaLozinke")}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                errors.potvrdaLozinke ? "border-red-500 focus:ring-red-300" : "border-gray-300 focus:ring-blue-300"
-              }`}
-            />
-            {errors.potvrdaLozinke && <p className="text-red-500 text-sm mt-1">{errors.potvrdaLozinke.message}</p>}
-          </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Potvrdite lozinku</label>
+              <input
+                type="password"
+                {...register("potvrdaLozinke")}
+                placeholder="Ponovite lozinku"
+                className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl transition-all focus:outline-none focus:ring-2 focus:bg-white ${
+                  errors.potvrdaLozinke 
+                    ? "border-red-500 focus:ring-red-100" 
+                    : "border-gray-200 focus:ring-blue-100 focus:border-blue-500"
+                }`}
+              />
+              {errors.potvrdaLozinke && (
+                <p className="text-red-500 text-xs mt-1.5 ml-1 italic">{errors.potvrdaLozinke.message}</p>
+              )}
+            </div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-          >
-            {isSubmitting ? "Čuvanje..." : "Sačuvaj novu lozinku"}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                   {/* Opciono: ovde može ići mali spinner icon */}
+                   Čuvanje...
+                </span>
+              ) : "Sačuvaj novu lozinku"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

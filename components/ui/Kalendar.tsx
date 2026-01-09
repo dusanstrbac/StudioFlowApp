@@ -2,14 +2,14 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import KalendarModal from './KalendarModal';
-import { FirmaAsortimanDTO } from '@/types/firma';
+import { FirmaAsortimanDTO, Termin } from '@/types/firma';
 
 interface KalendarProps {
   asortiman: FirmaAsortimanDTO[];
-  mesecniTermini?: any[]; // Niz svih termina za trenutni mesec
+  mesecniTermini?: Termin[];
   onDateSelect?: (date: Date) => void;
   onTerminZakazan?: () => void;
-  onMonthChange?: (year: number, month: number) => void; // Okida fetch u page.tsx
+  onMonthChange?: (year: number, month: number) => void;
 }
 
 // Helper funkcije
@@ -66,28 +66,38 @@ const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakaza
     setIsSelectOpen(prev => !prev);
   };
 
-  const renderDays = () => {
+const renderDays = () => {
     const days = [];
     const prevMonthDays = getDaysInMonth(currentYear, currentMonth);
+    
+    const prevM = currentMonth === 0 ? 11 : currentMonth - 1;
+    const prevY = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const nextM = currentMonth === 11 ? 0 : currentMonth + 1;
+    const nextY = currentMonth === 11 ? currentYear + 1 : currentYear;
 
-    // 1. Dani iz prethodnog meseca
+    // 1. Dani iz prethodnog meseca (JASNO POSIVLJENI)
     for (let i = 0; i < startDay; i++) {
       const prevMonthDay = prevMonthDays - startDay + i + 1;
       days.push(
-        <div key={`prev-${i}`} className="relative w-full h-24 border rounded-lg bg-gray-50 opacity-40 flex items-center justify-center">
-          <span className="absolute top-2 right-2 text-xs font-semibold text-gray-400">{prevMonthDay}</span>
-        </div>
+        <button 
+          key={`prev-${i}`} 
+          onClick={() => handleDayClick(prevMonthDay, prevM, prevY)}
+          className="relative w-full h-20 sm:h-24 bg-gray-100/50 border-transparent flex items-center justify-center hover:bg-gray-200/50 transition-colors group"
+        >
+          <span className="absolute top-2 right-2 text-xs font-medium text-gray-400/60 group-hover:text-gray-500">
+            {prevMonthDay}
+          </span>
+        </button>
       );
     }
 
-    // 2. Glavni dani meseca
+    // 2. Glavni dani meseca (ISTAKNUTI)
     for (let day = 1; day <= daysInMonth; day++) {
       const isSelected = selectedDate?.getDate() === day && 
                          selectedDate.getMonth() === currentMonth && 
                          selectedDate.getFullYear() === currentYear;
       const isToday = today.getDate() === day && today.getMonth() === currentMonth && today.getFullYear() === currentYear;
 
-      // BROJANJE TERMINA
       const broj = mesecniTermini.filter(t => {
         const d = new Date(t.datumTermina);
         return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
@@ -95,23 +105,27 @@ const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakaza
 
       days.push(
         <button
-          key={day}
+          key={`current-${day}`}
           onClick={() => handleDayClick(day, currentMonth, currentYear)}
           onDoubleClick={() => handleDayDoubleClick(day, currentMonth, currentYear)}
-          className={`relative w-full h-24 flex flex-col items-center justify-center cursor-pointer border rounded-lg transition-all duration-200 ${
-            isSelected ? 'bg-blue-600 text-white shadow-lg z-10 scale-[1.02]' : 'hover:bg-blue-50 bg-white border-gray-100'
-          } ${isToday ? 'border-2 border-red-500' : ''}`}
+          className={`relative w-full h-20 sm:h-24 flex flex-col items-center justify-center cursor-pointer border transition-all duration-200 rounded-lg ${
+            isSelected 
+              ? 'bg-blue-600 text-white shadow-lg z-10 scale-[1.02] border-blue-700' 
+              : 'hover:bg-blue-50 bg-white border-gray-100 shadow-sm'
+          } ${isToday ? 'border-2 border-red-500 ring-1 ring-red-200' : ''}`}
         >
-          <span className={`absolute top-2 right-2 text-xs font-bold ${isToday && !isSelected ? 'text-red-500' : isSelected ? 'text-blue-100' : 'text-gray-400'}`}>
+          <span className={`absolute top-2 right-2 text-xs font-bold ${
+            isSelected ? 'text-blue-100' : isToday ? 'text-red-600' : 'text-gray-900'
+          }`}>
             {day}
           </span>
 
           {broj > 0 && (
-            <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
-              <span className={`text-2xl font-black leading-none ${isSelected ? 'text-white' : 'text-blue-600'}`}>
+            <div className="flex flex-col items-center mt-2">
+              <span className={`text-xl sm:text-2xl font-black leading-none ${isSelected ? 'text-white' : 'text-blue-600'}`}>
                 {broj}
               </span>
-              <span className={`text-[9px] font-bold uppercase tracking-tighter mt-1 ${isSelected ? 'text-blue-100' : 'text-gray-400'}`}>
+              <span className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-tighter mt-1 ${isSelected ? 'text-blue-100' : 'text-gray-400'}`}>
                 {broj === 1 ? 'Termin' : 'Termina'}
               </span>
             </div>
@@ -120,13 +134,19 @@ const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakaza
       );
     }
 
-    // 3. Popunjavanje do kraja mreže (fiksno 42 polja)
+    // 3. Dani iz sledećeg meseca (JASNO POSIVLJENI)
     const remainingCells = 42 - days.length;
     for (let i = 1; i <= remainingCells; i++) {
       days.push(
-        <div key={`next-${i}`} className="relative w-full h-24 border rounded-lg bg-gray-50 opacity-40 flex items-center justify-center">
-          <span className="absolute top-2 right-2 text-xs font-semibold text-gray-400">{i}</span>
-        </div>
+        <button 
+          key={`next-${i}`} 
+          onClick={() => handleDayClick(i, nextM, nextY)}
+          className="relative w-full h-20 sm:h-24 bg-gray-100/50 border-transparent flex items-center justify-center hover:bg-gray-200/50 transition-colors group"
+        >
+          <span className="absolute top-2 right-2 text-xs font-medium text-gray-400/60 group-hover:text-gray-500">
+            {i}
+          </span>
+        </button>
       );
     }
     return days;

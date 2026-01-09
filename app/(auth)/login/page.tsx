@@ -110,129 +110,140 @@ export default function Login() {
     }
   };
 
-  return (
-    // ... (ostatak JSX-a ostaje isti)
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      {/* Ostatak tvog UI koda... */}
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="w-full max-w-sm bg-white rounded-xl shadow-lg p-8"
-      >
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-          Prijava
-        </h1>
-
-        <div className="mb-4">
-          <label className="block text-gray-700 font-medium mb-2">
-            Korisničko ime ili Email adresa
-          </label>
-          <input
-            type="text"
-            {...register("korisnickoIme")}
-            placeholder="Unesite email..."
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-              errors.korisnickoIme
-                ? "border-red-500 focus:ring-red-300"
-                : "border-gray-300 focus:ring-blue-300"
-            }`}
-          />
-          {errors.korisnickoIme && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.korisnickoIme.message}
-            </p>
-          )}
-        </div>
-
-        <div className="mb-2">
-          <label className="block text-gray-700 font-medium mb-2">
-            Lozinka
-          </label>
-          <input
-            type="password"
-            {...register("lozinka")}
-            placeholder="Unesite lozinku..."
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-              errors.lozinka
-                ? "border-red-500 focus:ring-red-300"
-                : "border-gray-300 focus:ring-blue-300"
-            }`}
-          />
-          {errors.lozinka && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.lozinka.message}
-            </p>
-          )}
-        </div>
-
-        <div className="text-right mb-6">
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="text-sm text-blue-600 hover:text-blue-800 transition bg-transparent border-none cursor-pointer"
-          >
-            Zaboravili ste lozinku?
-          </button>
-        </div>
-
-        {isModalOpen && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4 transition-all">
-            <div 
-              className="absolute inset-0 bg-black/30 backdrop-blur-sm" 
-              onClick={() => setIsModalOpen(false)} 
-            />
-            
-            <div className="relative bg-white rounded-xl p-6 w-full max-w-md shadow-2xl border border-gray-100">
-              <h2 className="text-xl font-bold mb-4">Resetovanje lozinke</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Unesite vašu email adresu i poslaćemo vam uputstvo za postavljanje nove lozinke.
-              </p>
-              
-              <input
-                type="email"
-                placeholder="vass@email.com"
-                value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-blue-300 outline-none"
-              />
-              
-              <div className="flex gap-3 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition cursor-pointer"
-                >
-                  Otkaži
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleResetLozinke();
-                  }}
-                  disabled={isResetting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer"
-                >
-                  {isResetting ? "Slanje..." : "Pošalji uputstvo"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? "Prijavljujem se..." : "Prijavi se"}
-        </button>
-
-        {errorMessage && (
-          <p className="text-red-600 text-center text-sm mt-4">
-            {errorMessage}
+return (
+  <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="w-full max-w-md space-y-8">
+      <div className="bg-white py-8 px-6 shadow-none sm:shadow-xl rounded-none sm:rounded-2xl border-0 sm:border border-gray-100">
+        
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+            StudioFlow
+          </h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Prijavite se na vaš nalog
           </p>
-        )}
-      </form>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {/* Polje za korisničko ime */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Email ili korisničko ime
+            </label>
+            <input
+              type="text"
+              {...register("korisnickoIme")}
+              placeholder="korisnik@email.com"
+              className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl transition-all focus:outline-none focus:ring-2 focus:bg-white ${
+                errors.korisnickoIme
+                  ? "border-red-500 focus:ring-red-200"
+                  : "border-gray-200 focus:ring-blue-100 focus:border-blue-500"
+              }`}
+            />
+            {errors.korisnickoIme && (
+              <p className="text-red-500 text-xs mt-1.5 ml-1 italic">
+                {errors.korisnickoIme.message}
+              </p>
+            )}
+          </div>
+
+          {/* Polje za lozinku */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Lozinka
+            </label>
+            <input
+              type="password"
+              {...register("lozinka")}
+              placeholder="••••••••"
+              className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl transition-all focus:outline-none focus:ring-2 focus:bg-white ${
+                errors.lozinka
+                  ? "border-red-500 focus:ring-red-200"
+                  : "border-gray-200 focus:ring-blue-100 focus:border-blue-500"
+              }`}
+            />
+            {errors.lozinka && (
+              <p className="text-red-500 text-xs mt-1.5 ml-1 italic">
+                {errors.lozinka.message}
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors"
+            >
+              Zaboravili ste lozinku?
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all active:scale-[0.98] disabled:opacity-70"
+          >
+            {isSubmitting ? "Prijavljujem se..." : "Prijavi se"}
+          </button>
+
+          {errorMessage && (
+            <div className="p-3 rounded-lg bg-red-50 border border-red-100">
+              <p className="text-red-600 text-center text-sm font-medium">
+                {errorMessage}
+              </p>
+            </div>
+          )}
+        </form>
+      </div>
+      
+      {/* Dodatni info tekst van kartice */}
+      <p className="text-center text-xs text-gray-400 mt-4">
+        &copy; {new Date().getFullYear()} StudioFlow. Sva prava zadržana.
+      </p>
     </div>
-  );
+
+    {/* Modal - Poboljšan za mobilne */}
+    {isModalOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div 
+          className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" 
+          onClick={() => setIsModalOpen(false)} 
+        />
+        <div className="relative bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in fade-in zoom-in duration-200">
+          <h2 className="text-xl font-bold text-gray-900">Reset lozinke</h2>
+          <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+            Unesite email adresu kako biste dobili instrukcije.
+          </p>
+          
+          <input
+            type="email"
+            placeholder="korisnik@email.com"
+            value={resetEmail}
+            onChange={(e) => setResetEmail(e.target.value)}
+            className="mt-4 w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+          />
+          
+          <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-xl transition"
+            >
+              Otkaži
+            </button>
+            <button
+              type="button"
+              onClick={handleResetLozinke}
+              disabled={isResetting}
+              className="w-full sm:flex-1 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition active:scale-[0.98] disabled:opacity-50"
+            >
+              {isResetting ? "Slanje..." : "Pošalji"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+);
 }

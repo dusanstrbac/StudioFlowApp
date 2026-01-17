@@ -7,11 +7,12 @@ import { toast } from 'sonner';
 
 interface UnosTroskaModalProps {
   onClose: () => void;
-  date: string; // Očekuje format YYYY-MM-DD (sqlDate)
+  date: string; 
   onSuccess: () => void;
+  idLokacije: number; // Ovo dobijamo iz sinhronizovanog stanja roditelja
 }
 
-const UnosTroskaModal: React.FC<UnosTroskaModalProps> = ({ onClose, date, onSuccess }) => {
+const UnosTroskaModal: React.FC<UnosTroskaModalProps> = ({ onClose, date, onSuccess, idLokacije }) => {
   const korisnik = dajKorisnikaIzTokena();
   const [loading, setLoading] = useState(false);
   
@@ -24,7 +25,6 @@ const UnosTroskaModal: React.FC<UnosTroskaModalProps> = ({ onClose, date, onSucc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validacija
     if (!form.opis || !form.iznos) {
       toast.error("Molimo vas popunite opis i iznos.");
       return;
@@ -39,22 +39,23 @@ const UnosTroskaModal: React.FC<UnosTroskaModalProps> = ({ onClose, date, onSucc
           opis: form.opis,
           iznos: parseFloat(form.iznos),
           kategorija: form.kategorija,
-          datum: date, // Šalje se sqlDate
+          datum: date,
           idFirme: korisnik?.idFirme,
-          idLokacije: korisnik?.idLokacije
+          // KLJUČNA IZMENA: Koristimo idLokacije prosleđen iz KalendarModala
+          idLokacije: idLokacije 
         })
       });
 
       if (response.ok) {
         toast.success("Trošak uspešno zabeležen");
-        onSuccess(); // Osvežava listu u roditelju
-        onClose();   // Zatvara modal
+        onSuccess(); 
+        onClose();   
       } else {
         toast.error("Greška pri čuvanju na serveru.");
       }
     } catch (error) {
       console.error(error);
-      toast.error("Sistemska greška: Proverite konekciju sa API-jem.");
+      toast.error("Sistemska greška.");
     } finally {
       setLoading(false);
     }
@@ -129,7 +130,6 @@ const UnosTroskaModal: React.FC<UnosTroskaModalProps> = ({ onClose, date, onSucc
             </div>
           </div>
 
-          {/* Submit Button */}
           <button 
             type="submit" 
             disabled={loading}

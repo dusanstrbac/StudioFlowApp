@@ -4,6 +4,8 @@ export interface Client {
   time: string;
   price: number;
   id: number;
+  napomena: string;
+  telefon: string;
 }
 
 interface Expense {

@@ -7,22 +7,25 @@ import { getCookie } from "cookies-next";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { BadgeEuro, Briefcase, Clock, MapPin, User, X } from "lucide-react";
+import { BadgeEuro, Briefcase, Clock, InfoIcon, MapPin, PhoneCall, User, X } from "lucide-react";
 
 interface ZakazivanjeTerminaProps {
   onClose: () => void;
   date: string; // YYYY-MM-DD
   asortiman: FirmaAsortimanDTO[];
   onTerminZakazi?: () => void;
+  idLokacije: number;
 }
 
-const ZakazivanjeTermina = ({ onClose, date, asortiman, onTerminZakazi }: ZakazivanjeTerminaProps) => {
+const ZakazivanjeTermina = ({ onClose, date, asortiman, onTerminZakazi, idLokacije }: ZakazivanjeTerminaProps) => {
   const [selectedService, setSelectedService] = useState<string>(''); 
   const [userName, setUserName] = useState<string>(''); 
   const [arrivalTime, setArrivalTime] = useState<string>(''); 
   const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [customCena, setCustomCena] = useState<number | ''>('');
+  const [napoma, setNapomena] = useState<string>('');
+  const [telefonKorisnika, setTelefonKorisnika] = useState<string>('');
   const [errors, setErrors] = useState({ userName: false, selectedService: false, arrivalTime: false, selectedAddress: false });
   const korisnik = dajKorisnikaIzTokena();
   const isReadOnly = !korisnikJeVlasnik(korisnik);
@@ -34,33 +37,46 @@ const ZakazivanjeTermina = ({ onClose, date, asortiman, onTerminZakazi }: Zakazi
     Number(u.idLokacije) === Number(selectedAddress)
   );
 
-  useEffect(() => {
-      const fetchLokacije = async () => {
+useEffect(() => {
+    const fetchLokacije = async () => {
         try {
-          const token = getCookie("AuthToken");
-          // Dodata provera da se fetch ne pokreće ako korisnik ne postoji
-          if (!korisnik?.idFirme) return;
+            const token = getCookie("AuthToken");
+            if (!korisnik?.idFirme || !token) return;
 
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Firme/DajFirme?idFirme=${korisnik.idFirme}`, {
-            headers: { "Authorization": `Bearer ${token}` }
-          });
-          if (!res.ok) throw new Error("Greška prilikom učitavanja lokacija.");
-          const data = await res.json();
-          const lokacije: Address[] = data[0]?.lokacije || [];
-          setAddresses(lokacije);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Firme/DajFirme?idFirme=${korisnik.idFirme}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
 
-          if (!korisnikJeVlasnik(korisnik)) {
-            setSelectedAddress(Number(korisnik?.idLokacije) || null);
-          } else {
-            setSelectedAddress(lokacije[0]?.id || null);
-          }
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error("Server error:", errorText);
+                return;
+            }
+
+            // Provera da li uopšte ima sadržaja pre parsiranja
+            const text = await res.text();
+            if (!text) return; 
+            
+            const data = JSON.parse(text);
+            const lokacije: Address[] = data[0]?.lokacije || [];
+            setAddresses(lokacije);
+
+            const memorisanaLokacija = localStorage.getItem('active_salon_id');
+            console.log(memorisanaLokacija)
+            
+            if (idLokacije) {
+                setSelectedAddress(Number(idLokacije));
+            } else if (memorisanaLokacija) {
+                setSelectedAddress(Number(memorisanaLokacija));
+            } else {
+                setSelectedAddress(Number(korisnik?.idLokacije) || lokacije[0]?.id || null);
+            }
         } catch (err) {
-          console.error(err);
+            console.error("Fetch error:", err);
         }
-      };
-      fetchLokacije();
-      // Dodat korisnik u niz zavisnosti
-    }, [korisnik]);
+    };
+    fetchLokacije();
+}, [korisnik?.idFirme, idLokacije]);
 
   useEffect(() => {
     if (!selectedAddress || !selectedService) {
@@ -68,7 +84,6 @@ const ZakazivanjeTermina = ({ onClose, date, asortiman, onTerminZakazi }: Zakazi
       return;
     }
 
-    // Pronađi uslugu koristeći Number() radi sigurnosti
     const selected = asortiman.find(u => 
       Number(u.idUsluge) === Number(selectedService) && 
       Number(u.idLokacije) === Number(selectedAddress)
@@ -79,7 +94,7 @@ const ZakazivanjeTermina = ({ onClose, date, asortiman, onTerminZakazi }: Zakazi
     } else {
       setCustomCena("");
     }
-    // DODAJ asortiman ovde u niz zavisnosti!
+    // Ovde asortiman MORA biti prisutan
   }, [selectedService, selectedAddress, asortiman]);
 
   const rezervisiTermin = async () => {
@@ -113,7 +128,9 @@ const ZakazivanjeTermina = ({ onClose, date, asortiman, onTerminZakazi }: Zakazi
         idZaposlenog: Number(korisnik?.idKorisnika),
         datumTermina,
         cena: customCena === "" ? 0 : Number(customCena),
-        imeMusterije: userName
+        imeMusterije: userName,
+        napomena: napoma,
+        brojTelefona: telefonKorisnika
       };
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/ZakaziTermin`, {
@@ -165,7 +182,7 @@ const ZakazivanjeTermina = ({ onClose, date, asortiman, onTerminZakazi }: Zakazi
                 </div>
 
                 {/* Sadržaj Forme */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 custom-scrollbar" style={{ maxHeight: 'calc(90vh - 160px)' }}>
                     
                     {/* Ime i Prezime */}
                     <div className="space-y-1.5">
@@ -232,27 +249,52 @@ const ZakazivanjeTermina = ({ onClose, date, asortiman, onTerminZakazi }: Zakazi
                         </div>
                     </div>
 
-                    {/* Adresa Lokacije */}
+                    {/* Adresa Lokacije - ZAKLJUČANO */}
+                    <div className="space-y-1.5 opacity-80">
+                        <label className="text-sm font-bold text-gray-500 flex items-center gap-2">
+                            <MapPin size={16} /> Lokacija (fiksirano za ovaj kalendar)
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={selectedAddress ?? ''}
+                                disabled={true} // Uvek zaključano jer zakazujemo iz specifičnog kalendara
+                                className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl outline-none appearance-none cursor-not-allowed text-gray-600 font-semibold"
+                            >
+                                {addresses.map((a) => (
+                                    <option key={a.id} value={a.id}>{a.nazivLokacije} - {a.adresa}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <InfoIcon size={14} className="text-gray-400" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Broj telefona */}
                     <div className="space-y-1.5">
                         <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                            <MapPin size={16} className="text-blue-500" /> Lokacija salona
+                            <PhoneCall size={16} className="text-blue-500" /> Broj telefona
                         </label>
-                        <select
-                            value={selectedAddress ?? ''}
-                            onChange={(e) => {
-                                setSelectedAddress(Number(e.target.value));
-                                setSelectedService('');
-                            }}
-                            disabled={isReadOnly}
-                            className={`w-full p-3 bg-gray-50 border rounded-xl outline-none transition-all appearance-none cursor-pointer ${errors.selectedAddress ? "border-red-500" : "border-gray-200 focus:border-blue-500 focus:bg-white"} ${isReadOnly && "opacity-60"}`}
-                        >
-                            <option value="" disabled>Izaberi lokaciju</option>
-                            {addresses.map((a) => (
-                                <option key={a.id} value={a.id}>{a.nazivLokacije} - {a.adresa}</option>
-                            ))}
-                        </select>
+                        <input
+                            type="tel"
+                            value={telefonKorisnika}
+                            onChange={(e) => setTelefonKorisnika(e.target.value)}
+                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-all"
+                            placeholder="Npr. 064 123 4567"
+                        />
+                    </div>
+
+
+                    {/* Napomena */}
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                            <InfoIcon size={16} className="text-blue-500" /> Napomena <p className="text-gray-400">(opciono)</p>
+                        </label>
+                        <textarea value={napoma} onChange={(e) => setNapomena(e.target.value)} className="border-1 border-gray-400 rounded-md w-full max-h-[100px] px-1">
+                        </textarea>
                     </div>
                 </div>
+
 
                 {/* Footer Akcije */}
                 <div className="p-6 bg-white border-t border-gray-100 flex flex-col sm:flex-row gap-3">

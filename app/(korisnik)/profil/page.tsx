@@ -18,18 +18,15 @@ export default function Nalog() {
   useEffect(() => {
     const fetchKorisnik = async () => {
       try {
-        // 1️⃣ Dobij token iz cookie-ja
         const token = getCookie("AuthToken");
         if (!token || typeof token !== "string") {
           console.log("Nema AuthToken cookie-a");
           return;
         }
 
-        // 2️⃣ Dekodiraj token
         const korisnikIzTokena: KorisnikToken | null = dajKorisnikaIzTokena(token);
         if (!korisnikIzTokena) return;
 
-        // 3️⃣ Postavi osnovne podatke iz tokena odmah
         setKorisnik({
           ime: korisnikIzTokena.ime,
           uloga: korisnikIzTokena.uloga,
@@ -39,7 +36,6 @@ export default function Nalog() {
           godisnjiOdmor: [],
         });
 
-        // 4️⃣ Fetch dodatnih podataka sa servera
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Korisnik/DajKorisnika?emailKorisnika=${korisnikIzTokena.email}`, {
           method: "GET",
           headers: {
@@ -63,6 +59,7 @@ export default function Nalog() {
   const odjaviKorisnika = () => {
     deleteCookie("AuthToken");
     router.push("/login");
+    localStorage.removeItem('active_salon_id');
   };
 
   // Fetchovanje ucinka radnika

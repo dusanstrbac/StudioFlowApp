@@ -1,21 +1,22 @@
 'use client';
 import { useState, useEffect } from "react";
 import { getCookie } from "cookies-next";
-import { User, X, Phone, Timer, ChevronRight, Check, Loader2 } from "lucide-react";
+import { X, Timer, ChevronRight, Check, Loader2, Banknote, Phone, User, InfoIcon } from "lucide-react";
+import { dajKorisnikaIzTokena } from "@/lib/auth";
+import { toast } from "sonner";
 
 // --- INTERFEJSI ---
-
 interface Usluga {
-  id: number;
+  idUsluge: number; 
   nazivUsluge: string;
   cena: number;
-  nazivKategorije: string;
 }
 
 interface SlobodanTermin {
   vreme: string;
   radnik: string;
-  idRadnika?: number;
+  idRadnika: number;
+  datum: string;
 }
 
 interface GrupisaniTermini {
@@ -25,11 +26,11 @@ interface GrupisaniTermini {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-const BrzaRezervacijaModal = ({ isOpen, onClose }: Props) => {
-  // --- STATE ---
-  const [step, setStep] = useState(1); // 1: Pretraga, 2: Termini, 3: Klijent
+const BrzaRezervacijaModal = ({ isOpen, onClose, onSuccess }: Props) => {
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingUsluge, setLoadingUsluge] = useState(true);
   const [usluge, setUsluge] = useState<Usluga[]>([]);
@@ -40,22 +41,37 @@ const BrzaRezervacijaModal = ({ isOpen, onClose }: Props) => {
   const [formData, setFormData] = useState({
     ime: "",
     telefon: "",
-    uslugaId: "",
+    uslugaId: "", 
+    cena: 0,
     trajanje: 30,
     datum: new Date().toISOString().split('T')[0],
     vremeOd: "08:00",
-    radnik: "Bilo ko"
+    napomena: ""
   });
 
-  // --- EFEKTI ---
+  const formatirajDatumZaPrikaz = (datum: string) => {
+    if (!datum) return "";
+
+    return new Date(datum).toLocaleDateString("sr-RS", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+  };
+
+  // --- DOHVATANJE ASORTIMANA ---
   useEffect(() => {
     if (isOpen) {
       setStep(1);
+      setError(null);
+      setSelectedTermin(null);
       const fetchUsluge = async () => {
         setLoadingUsluge(true);
         try {
+          const korisnik = dajKorisnikaIzTokena();
           const token = getCookie("AuthToken");
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Usluge/DajAsortiman?idFirme=1`, {
+          
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Usluge/DajAsortiman?idFirme=${korisnik?.idFirme}&idLokacije=${korisnik?.idLokacije}`, {
             headers: {
               "Authorization": `Bearer ${token}`,
               "Content-Type": "application/json"
@@ -76,93 +92,115 @@ const BrzaRezervacijaModal = ({ isOpen, onClose }: Props) => {
   }, [isOpen]);
 
   // --- HANDLERI ---
+  const handleUslugaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    const izabranaUsluga = usluge.find(u => u.idUsluge.toString() === selectedId);
+    
+    setFormData({
+      ...formData,
+      uslugaId: selectedId,
+      cena: izabranaUsluga ? izabranaUsluga.cena : 0
+    });
+  };
 
   const handleFindSlots = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.uslugaId) {
+      setError("Morate izabrati uslugu.");
+      return;
+    }
     setLoading(true);
     setError(null);
 
     try {
+      const korisnik = dajKorisnikaIzTokena();
       const token = getCookie("AuthToken");
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/ProveriSlobodneTermine?idFirme=1&idLokacije=1&datum=${formData.datum}&trajanjeMinuta=${formData.trajanje}`;
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/ProveriSlobodneTermine?idFirme=${korisnik?.idFirme}&idLokacije=${korisnik?.idLokacije}&datum=${formData.datum}&trajanjeMinuta=${formData.trajanje}`;
 
       const response = await fetch(url, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
       });
 
       if (response.ok) {
         const data: SlobodanTermin[] = await response.json();
-        if (data.length === 0) {
-          setError("Nema slobodnih termina za izabrani dan.");
+        const filtrirani = data.filter((t) => t.vreme >= formData.vremeOd);
+        if (filtrirani.length === 0) {
+          setError("Nema slobodnih termina.");
         } else {
-          const filtriraniTermini = data.filter((t) => t.vreme >= formData.vremeOd);
-          setSlobodniTermini(filtriraniTermini);
+          setSlobodniTermini(filtrirani);
           setStep(2);
         }
-      } else {
-        setError("Neuspešna provera termina.");
       }
-    } catch {
-      setError("Greška pri povezivanju sa serverom.");
+    } catch (err) {
+      setError("Server nije dostupan.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelectTermin = (termin: SlobodanTermin) => {
-    setSelectedTermin(termin);
-    setStep(3);
+  const handleFinalConfirm = async () => {
+    if (!selectedTermin) return;
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const korisnik = dajKorisnikaIzTokena();
+      const token = getCookie("AuthToken");
+
+      const payload = {
+        idFirme: Number(korisnik?.idFirme),
+        idLokacije: Number(korisnik?.idLokacije),
+        idUsluge: Number(formData.uslugaId),
+        idZaposlenog: Number(selectedTermin.idRadnika),
+        datumTermina: `${formData.datum}T${selectedTermin.vreme}:00`,
+        cena: Number(formData.cena),
+        imeMusterije: formData.ime,
+        brojTelefona: formData.telefon,
+        napomena: formData.napomena
+      };
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/ZakaziTermin`, {
+        method: 'POST',
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        toast.success("Termin uspešno zakazan!");
+        window.dispatchEvent(new Event("terminZakazanGlobalno"));
+        
+        if (onSuccess) onSuccess();
+        onClose();
+      } else {
+        const errorText = await response.text();
+        setError(errorText || "Greška prilikom upisa.");
+      }
+    } catch (err) {
+      setError("Greška pri komunikaciji sa serverom.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Grupisanje termina po vremenu (satnici)
   const grupisaniTermini = slobodniTermini.reduce<GrupisaniTermini>((acc, curr) => {
-    if (!acc[curr.vreme]) {
-      acc[curr.vreme] = [];
-    }
+    if (!acc[curr.vreme]) acc[curr.vreme] = [];
     acc[curr.vreme].push(curr);
     return acc;
   }, {});
-
-  const handleFinalConfirm = async () => {
-    if (!selectedTermin) return;
-    
-    setLoading(true);
-    try {
-      console.log("Rezervacija se šalje:", {
-        klijent: formData.ime,
-        tel: formData.telefon,
-        usluga: formData.uslugaId,
-        vreme: selectedTermin.vreme
-      });
-
-      setTimeout(() => {
-        setLoading(false);
-        onClose();
-      }, 1000);
-    } catch (err) {
-      setLoading(false);
-      console.error("Greška:", err);
-    }
-  };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-black font-sans">
-      <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border border-gray-100">
-
-        {/* HEADER MODALA */}
+      <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100">
+        
+        {/* HEADER */}
         <div className="p-7 border-b flex justify-between items-center bg-gray-50/50">
-          <div>
-            <h2 className="font-black text-xl tracking-tighter uppercase text-gray-900">
-              {step === 1 && "Brza rezervacija"}
-              {step === 2 && "Slobodni Termini"}
-              {step === 3 && "Podaci o klijentu"}
-            </h2>
-          </div>
+          <h2 className="font-black text-xl tracking-tighter uppercase text-gray-900">
+            {step === 1 && "Brza rezervacija"}
+            {step === 2 && "Slobodni Termini"}
+            {step === 3 && "Podaci o klijentu"}
+          </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-xl transition-all text-gray-400">
             <X size={20} />
           </button>
@@ -170,70 +208,76 @@ const BrzaRezervacijaModal = ({ isOpen, onClose }: Props) => {
 
         <div className="p-8">
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold flex items-center gap-2 animate-shake">
+            <div className="mb-4 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold flex items-center gap-2">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
               {error}
             </div>
           )}
 
-          {/* KORAK 1: IZBOR USLUGE I FILTERI */}
+          {/* KORAK 1: FILTERI */}
           {step === 1 && (
             <form onSubmit={handleFindSlots} className="space-y-6">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2 space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Usluga iz asortimana</label>
-                  <div className="relative">
-                    {loadingUsluge ? (
-                      <div className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl flex items-center gap-2 text-gray-400 text-xs italic">
-                        <Loader2 size={14} className="animate-spin" /> Učitavam...
-                      </div>
-                    ) : (
-                      <select
-                        required
-                        className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl outline-none text-sm font-bold appearance-none cursor-pointer focus:ring-2 focus:ring-black text-black"
-                        value={formData.uslugaId}
-                        onChange={e => setFormData({ ...formData, uslugaId: e.target.value })}
-                      >
-                        <option value="" className="text-black">Izaberite uslugu...</option>
-                        {usluge.map(u => (
-                          <option key={u.id} value={u.id} className="text-black">
-                            {u.nazivUsluge} — {u.cena} RSD
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                </div>
+              <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Trajanje</label>
-                  <div className="relative text-black">
-                    <input
-                      type="number"
-                      value={formData.trajanje}
-                      className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-black text-center outline-none focus:ring-2 focus:ring-black"
-                      onChange={e => setFormData({ ...formData, trajanje: parseInt(e.target.value) || 0 })}
-                    />
-                    <span className="absolute right-3 top-3.5 text-[9px] font-bold text-gray-300 uppercase">min</span>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Usluga</label>
+                  <select
+                    required
+                    className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl outline-none text-sm font-bold"
+                    value={formData.uslugaId}
+                    onChange={handleUslugaChange}
+                  >
+                    <option value="">Izaberite uslugu...</option>
+                    {usluge.map((u, index) => (
+                      <option key={`${u.idUsluge}-${index}`} value={u.idUsluge}>{u.nazivUsluge}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Trajanje (min)</label>
+                    <div className="relative">
+                       <Timer className="absolute left-3 top-3.5 text-gray-300" size={16} />
+                       <input
+                        type="number"
+                        className="w-full p-3.5 pl-10 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-black outline-none"
+                        value={formData.trajanje}
+                        onChange={e => setFormData({ ...formData, trajanje: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">Cena (RSD)</label>
+                    <div className="relative">
+                      <Banknote className="absolute left-3 top-3.5 text-blue-300" size={16} />
+                      <input
+                        type="number"
+                        className="w-full p-3.5 pl-10 bg-blue-50 border border-blue-100 rounded-2xl text-sm font-black text-blue-700 outline-none"
+                        value={formData.cena}
+                        onChange={e => setFormData({ ...formData, cena: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Datum pretrage</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Datum</label>
                   <input
                     type="date"
+                    min={new Date().toISOString().split('T')[0]} 
+                    className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold outline-none"
                     value={formData.datum}
-                    className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-black text-black"
                     onChange={e => setFormData({ ...formData, datum: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-gray-400">Najranije od</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Od vremena</label>
                   <input
                     type="time"
+                    className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold outline-none"
                     value={formData.vremeOd}
-                    className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-black text-black"
                     onChange={e => setFormData({ ...formData, vremeOd: e.target.value })}
                   />
                 </div>
@@ -241,124 +285,94 @@ const BrzaRezervacijaModal = ({ isOpen, onClose }: Props) => {
 
               <button
                 type="submit"
-                disabled={loadingUsluge || loading}
-                className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] hover:bg-blue-600 transition-all shadow-xl flex justify-center items-center gap-2"
+                disabled={loading}
+                className="w-full py-4 bg-black text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] hover:bg-blue-600 transition-all flex justify-center items-center gap-2"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : "Pronađi slobodna mesta"}
               </button>
             </form>
           )}
 
-          {/* KORAK 2: PRIKAZ SLOBODNIH TERMINA */}
+          {/* KORAK 2: TERMINI */}
           {step === 2 && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center border-b pb-4">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Planer za: {formData.datum}</span>
-                <div className="flex items-center gap-1 text-blue-600 font-bold text-xs italic">
-                  <Timer size={14} /> {formData.trajanje} min
-                </div>
-              </div>
-
-              <div className="max-h-[400px] overflow-y-auto pr-2 space-y-8 custom-scrollbar">
-                {Object.keys(grupisaniTermini).map((vreme) => (
-                  <div key={vreme} className="relative">
-                    <div className="sticky top-0 z-10 flex items-center gap-3 bg-white mb-3">
-                      <span className="text-sm font-black text-black bg-gray-100 px-3 py-1 rounded-full shadow-sm">
-                        {vreme}h
-                      </span>
-                      <div className="h-[1px] flex-1 bg-gray-100"></div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2 ml-4">
+              <div className="max-h-[400px] overflow-y-auto pr-2 space-y-4">
+                {Object.keys(grupisaniTermini).sort().map((vreme) => (
+                  <div key={`group-${vreme}`}>
+                    <div className="sticky top-0 bg-white py-2 text-xs font-black text-gray-400">{vreme}h</div>
+                    <div className="grid gap-2">
                       {grupisaniTermini[vreme].map((t, i) => (
                         <button
-                          key={`${vreme}-${i}`}
-                          onClick={() => handleSelectTermin(t)}
-                          className="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl hover:border-blue-500 hover:shadow-md transition-all active:scale-[0.98] group"
+                          key={`${vreme}-${t.idRadnika}-${i}`}
+                          onClick={() => { setSelectedTermin(t); setStep(3); }}
+                          className="flex justify-between items-center p-4 bg-white border border-gray-100 rounded-2xl hover:border-blue-500 transition-all group"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                              <User size={16} />
-                            </div>
-                            <div className="text-left">
-                              <p className="text-[11px] font-bold text-gray-900">{t.radnik}</p>
-                              <p className="text-[9px] text-gray-400 uppercase tracking-tighter">Slobodan slot</p>
-                            </div>
-                          </div>
-                          <ChevronRight size={14} className="text-gray-300 group-hover:text-blue-500" />
+                          <span className="text-sm font-bold">{t.radnik}</span>
+                          <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-500" />
                         </button>
                       ))}
                     </div>
                   </div>
                 ))}
               </div>
-
-              <button
-                onClick={() => setStep(1)}
-                className="w-full py-3 text-gray-400 font-bold text-[9px] uppercase tracking-widest hover:text-black border-t"
-              >
-                ← Promeni parametre pretrage
-              </button>
+              <button onClick={() => setStep(1)} className="w-full py-3 text-gray-400 font-bold text-[9px] uppercase tracking-widest">← Nazad na filtere</button>
             </div>
           )}
 
-          {/* KORAK 3: FINALNI UNOS PODATAKA O KLIJENTU */}
+          {/* KORAK 3: KLIJENT I POTVRDA */}
           {step === 3 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-5 duration-300 text-black">
-              <div className="bg-gray-900 p-6 rounded-[2rem] text-white flex justify-between items-center shadow-2xl">
+            <div className="space-y-6">
+              <div className="bg-gray-900 p-6 rounded-[2rem] text-white flex justify-between items-center">
                 <div>
-                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Potvrda termina</p>
-                  <p className="text-lg font-bold">{selectedTermin?.vreme}h — {selectedTermin?.radnik}</p>
-                  <p className="text-[11px] text-blue-400 font-medium">{formData.datum}</p>
+                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Rezime</p>
+                  <p className="text-lg font-bold">{formatirajDatumZaPrikaz(formData.datum)}</p>
+                  <p className="text-lg font-bold">{selectedTermin?.vreme}h — {formData.cena} RSD</p>
+                  <p className="text-xs text-blue-400">{selectedTermin?.radnik}</p>
                 </div>
-                <div className="p-3 bg-white/10 rounded-2xl">
-                  <Check size={24} className="text-green-400" />
-                </div>
+                <Check size={24} className="text-green-400" />
               </div>
 
               <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Ime klijenta</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-4 text-gray-300" size={18} />
-                    <input
-                      autoFocus
-                      type="text"
-                      placeholder="Unesite ime..."
-                      className="w-full p-4 pl-12 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-black font-bold text-sm text-black"
-                      onChange={e => setFormData({ ...formData, ime: e.target.value })}
-                    />
-                  </div>
+                <div className="relative">
+                  <User className="absolute left-4 top-4 text-gray-300" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Ime i prezime klijenta"
+                    className="w-full p-4 pl-12 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-black"
+                    value={formData.ime}
+                    onChange={e => setFormData({ ...formData, ime: e.target.value })}
+                  />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Kontakt telefon</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-4 text-gray-300" size={18} />
-                    <input
-                      type="tel"
-                      placeholder="06..."
-                      className="w-full p-4 pl-12 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-black font-bold text-sm text-black"
-                      onChange={e => setFormData({ ...formData, telefon: e.target.value })}
-                    />
-                  </div>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-4 text-gray-300" size={18} />
+                  <input
+                    type="tel"
+                    placeholder="Broj telefona (opciono)"
+                    className="w-full p-4 pl-12 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-black"
+                    value={formData.telefon}
+                    onChange={e => setFormData({ ...formData, telefon: e.target.value })}
+                  />
+                </div>
+                <div className="relative">
+                  <InfoIcon className="absolute left-4 top-4 text-gray-300" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Napomena (opciono)"
+                    className="w-full p-4 pl-12 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-black"
+                    value={formData.napomena}
+                    onChange={e => setFormData({ ...formData, napomena: e.target.value })}
+                  />
                 </div>
               </div>
 
-              <div className="pt-2">
-                <button
-                  onClick={handleFinalConfirm}
-                  disabled={loading || !formData.ime}
-                  className="w-full py-5 bg-green-500 text-white rounded-[2rem] font-black uppercase text-[12px] tracking-[0.2em] hover:bg-green-600 transition-all shadow-xl shadow-green-100 flex justify-center items-center gap-2"
-                >
-                  {loading ? <Loader2 size={18} className="animate-spin" /> : "Zakaži Termin"}
-                </button>
-                <button
-                  onClick={() => setStep(2)}
-                  className="w-full text-center text-gray-400 font-bold text-[9px] uppercase tracking-widest mt-4 hover:text-red-500 transition-colors"
-                >
-                  Promeni termin
-                </button>
-              </div>
+              <button
+                onClick={handleFinalConfirm}
+                disabled={loading || !formData.ime }
+                className="w-full py-5 bg-green-500 text-white rounded-[2rem] font-black uppercase text-[12px] tracking-[0.2em] hover:bg-green-600 transition-all flex justify-center items-center gap-2"
+              >
+                {loading ? <Loader2 size={18} className="animate-spin" /> : "Potvrdi Rezervaciju"}
+              </button>
+              <button onClick={() => setStep(2)} className="w-full py-3 text-gray-400 font-bold text-[9px] uppercase tracking-widest">← Nazad na termine</button>
             </div>
           )}
         </div>

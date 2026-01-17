@@ -122,6 +122,9 @@ const TopNavigation = () => {
       <BrzaRezervacijaModal 
         isOpen={isQuickBookingOpen} 
         onClose={() => setIsQuickBookingOpen(false)} 
+        onSuccess={() => {
+          window.dispatchEvent(new Event("osveziKalendar"));
+        }}
       />
     </>
   );

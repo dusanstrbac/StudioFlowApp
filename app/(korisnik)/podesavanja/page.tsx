@@ -1,9 +1,10 @@
 'use client';
 import BetaOverlay from "@/components/BetaOverlay";
 import { dajKorisnikaIzTokena } from "@/lib/auth";
+import { korisnikJeVlasnik } from "@/lib/proveraUloge";
 import { deleteCookie, getCookie } from "cookies-next";
 import { AnimatePresence, motion } from "framer-motion";
-import { BellIcon, BuildingIcon, ChevronRight, PaletteIcon, PhoneCall, Shield } from "lucide-react";
+import { ArrowRight, BellIcon, BuildingIcon, ChevronDown, ChevronRight, PaletteIcon, PhoneCall, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { toast } from "sonner";
@@ -39,8 +40,9 @@ interface RadnoVremeResponse {
 
 export default function PodesavanjaPage() {
     const router = useRouter();
-    const korisnik = dajKorisnikaIzTokena();
-
+    const korisnik = useMemo(() => dajKorisnikaIzTokena(), []);
+    const isReadOnly = !korisnikJeVlasnik(korisnik);
+    
     const [aktivnaSekcija, setAktivnaSekcija] = useState("Notifikacije");
     const [sveFirme, setSveFirme] = useState<LokacijaDTO[]>([]); 
     const [selektovanaFirmaId, setSelektovanaFirmaId] = useState<number | null>(null);
@@ -71,8 +73,8 @@ export default function PodesavanjaPage() {
         Array(7).fill(null).map((_, i) => ({ danUNedelji: i, od: "09:00", do: "17:00", isNeradniDan: false }))
     );
 
-    const emailTehnickePodrske = "dusan.strbac01@gmail.com";
-    const telefonTehnickePodrske = "+381607292777";
+    const emailTehnickePodrske = "click.app001@gmail.com";
+    const telefonTehnickePodrske = "+381606091110";
 
     const sekcije = [
         { naziv: "Notifikacije", opis: "Obaveštenja", ikonica: <BellIcon size={18} />},
@@ -87,7 +89,7 @@ export default function PodesavanjaPage() {
     const fetchFirme = useCallback(async () => {
         try {
             const token = getCookie("AuthToken");
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Firme/DajFirme`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Firme/DajFirme?idFirme=${korisnik?.idFirme}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (!res.ok) return;
@@ -350,71 +352,168 @@ const renderSadrzaj = () => {
                         </BetaOverlay>
                     </div>
                 );
-            case "Lokal":
+            case "Tema / Izgled":
                 return (
-                    <div className="space-y-6">
-                         <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                                    <BuildingIcon size={20} />
+                    <BetaOverlay isBlocked={true}>
+                    <div className="max-w-2xl space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {/* Sekcija: Primarna Boja */}
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-blue-50 rounded-lg">
+                                    <div className="w-4 h-4 bg-blue-600 rounded-full"></div>
+                                </div>
+                                <h3 className="font-bold text-gray-900">Primarna boja sistema</h3>
+                            </div>
+                                
+                            <div className="grid grid-cols-4 gap-3">
+                                {['#2563eb', '#7c3aed', '#db2777', '#059669'].map((color) => (
+                                    <button 
+                                        key={color}
+                                        className="h-12 rounded-xl border-2 border-transparent hover:border-gray-200 transition-all flex items-center justify-center"
+                                        style={{ backgroundColor: `${color}10` }}
+                                    >
+                                        <div className="w-6 h-6 rounded-full shadow-sm" style={{ backgroundColor: color }}></div>
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[11px] text-slate-400 italic">* Ova podešavanja utiču na izgled vašeg korisničkog panela.</p>
+                        </div>
+
+                        {/* Sekcija: Dark Mode (Blokirano sa tvojim BetaOverlay-om) */}
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-slate-100 rounded-xl">
+                                    {/* Moon icon placeholder */}
+                                    <div className="w-5 h-5 border-2 border-slate-400 rounded-full border-t-transparent -rotate-45"></div>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Trenutna lokacija</p>
-                                    <p className="font-bold text-gray-900">{trenutnaFirma?.nazivLokacije}</p>
+                                    <h3 className="font-bold text-gray-900">Tamni režim (Dark Mode)</h3>
+                                    <p className="text-sm text-gray-500">Prebacite interfejs u tamne tonove radi lakšeg rada noću.</p>
                                 </div>
                             </div>
-                            <select 
-                                value={selektovanaFirmaId ?? ""} 
-                                onChange={(e) => setSelektovanaFirmaId(Number(e.target.value))}
-                                className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold outline-none focus:ring-2 ring-blue-50"
-                            >
-                                {sveFirme.map((f) => <option key={f.id} value={f.id}>{f.nazivLokacije}</option>)}
-                            </select>
+                                    
+                            {/* Fake Toggle Switch */}
+                            <div className="w-12 h-6 bg-gray-200 rounded-full relative">
+                                <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm"></div>
+                            </div>
+                        </div>
+
+                        {/* Sekcija: Kompaktan prikaz */}
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                            <div>
+                                <h3 className="font-bold text-gray-900">Kompaktan prikaz tabela</h3>
+                                <p className="text-sm text-gray-500">Smanjuje razmake u tabelama kako bi stalo više podataka.</p>
+                            </div>
+                            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200">
+                                <span className="inline-block h-4 w-4 transform rounded-full bg-white transition translate-x-1" />
+                            </button>
+                        </div>
+                    </div>
+                    </BetaOverlay>
+                );
+            case "Lokal":
+                if (isReadOnly) {
+                    return (
+                        <div className="py-20 text-center">
+                            <p className="text-gray-400 italic">Nemate privilegije za izmenu podešavanja lokala.</p>
+                        </div>
+                    );
+                }
+                return (
+                    <div className="space-y-6 animate-in fade-in duration-500">
+                        {/* Top Bar: Selektor lokala */}
+                        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-100">
+                                    <BuildingIcon size={24} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">Administracija objekta</p>
+                                    <h2 className="text-xl font-bold text-gray-900">{trenutnaFirma?.nazivLokacije || "Izaberite lokal"}</h2>
+                                </div>
+                            </div>
+                            
+                            <div className="relative group">
+                                <select 
+                                    value={selektovanaFirmaId ?? ""} 
+                                    onChange={(e) => setSelektovanaFirmaId(Number(e.target.value))}
+                                    className="appearance-none pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-700 outline-none focus:ring-2 ring-blue-100 transition-all cursor-pointer min-w-[200px]"
+                                >
+                                    {sveFirme.map((f) => <option key={f.id} value={f.id}>{f.nazivLokacije}</option>)}
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                    <ChevronDown size={18} />
+                                </div>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                            {/* Leva kolona: Info */}
                             <div className="xl:col-span-2 space-y-6">
-                                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                    <h3 className="font-bold text-gray-900 border-b pb-4 mb-4">Informacije o lokalu</h3>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <p className="text-xs text-gray-400 uppercase font-bold">Brend / Firma</p>
-                                            <p className="font-medium">{nazivFirme}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-gray-400 uppercase font-bold">Adresa</p>
-                                            <p className="font-medium">{trenutnaFirma?.adresa || 'Nije uneta'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-gray-400 uppercase font-bold">Kontakt telefon</p>
-                                            <p className="font-medium text-blue-600 underline cursor-pointer">{trenutnaFirma?.telefon || 'Nije unet'}</p>
-                                        </div>
+                                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                                        <BuildingIcon size={120} />
+                                    </div>
+                                    
+                                    <h3 className="font-black text-gray-900 text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                                        Osnovni podaci
+                                    </h3>
+                                    
+                                    <div className="space-y-5">
+                                        {[
+                                            { label: "Brend / Firma", val: nazivFirme, sub: "Pravno ime" },
+                                            { label: "Adresa", val: trenutnaFirma?.adresa || 'Nije uneta', sub: "Lokacija na mapi" },
+                                            { label: "Kontakt telefon", val: trenutnaFirma?.telefon || 'Nije unet', sub: "Javni broj za klijente", isBlue: true }
+                                        ].map((item, i) => (
+                                            <div key={i} className="group cursor-default">
+                                                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">{item.label}</p>
+                                                <p className={`font-semibold ${item.isBlue ? 'text-blue-600 underline underline-offset-4' : 'text-gray-700'}`}>
+                                                    {item.val}
+                                                </p>
+                                                <p className="text-[10px] text-gray-300 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">{item.sub}</p>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="xl:col-span-3 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                <h3 className="font-bold text-gray-900 border-b pb-4 mb-6">Podešavanje radnog vremena</h3>
-                                <div className="space-y-2">
+                            {/* Desna kolona: Radno Vreme */}
+                            <div className="xl:col-span-3 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                                <div className="flex items-center justify-between mb-8 border-b border-gray-50 pb-4">
+                                    <h3 className="font-black text-gray-900 text-sm uppercase tracking-widest">Radno Vreme</h3>
+                                    <span className="text-[10px] bg-green-50 text-green-600 px-2 py-1 rounded-md font-bold">Aktivno</span>
+                                </div>
+
+                                <div className="space-y-3">
                                     {radnoVreme.map((dan, index) => (
-                                        <div key={index} className={`flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl transition-all ${dan.isNeradniDan ? 'bg-gray-50 opacity-60' : 'bg-white hover:bg-blue-50/30'}`}>
-                                            <span className="w-20 font-bold text-gray-700">{["Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota", "Nedelja"][index]}</span>
+                                        <div key={index} className={`flex items-center justify-between p-3 rounded-2xl transition-all border ${dan.isNeradniDan ? 'bg-gray-50/50 border-transparent grayscale italic' : 'bg-white border-gray-50 hover:border-blue-100 hover:shadow-md hover:shadow-blue-50/20'}`}>
+                                            <span className="w-24 font-bold text-sm text-gray-600">
+                                                {["Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota", "Nedelja"][index]}
+                                            </span>
                                             
-                                            <div className="flex items-center gap-2">
-                                                <input type="time" value={dan.od} disabled={dan.isNeradniDan} onChange={(e) => handleVremeChange(index, "od", e.target.value)} className="bg-transparent border-none font-semibold text-gray-900 focus:ring-0 cursor-pointer" />
-                                                <span className="text-gray-300">—</span>
-                                                <input type="time" value={dan.do} disabled={dan.isNeradniDan} onChange={(e) => handleVremeChange(index, "do", e.target.value)} className="bg-transparent border-none font-semibold text-gray-900 focus:ring-0 cursor-pointer" />
+                                            <div className={`flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl transition-opacity ${dan.isNeradniDan ? 'opacity-20' : 'opacity-100'}`}>
+                                                <input type="time" value={dan.od} disabled={dan.isNeradniDan} onChange={(e) => handleVremeChange(index, "od", e.target.value)} className="bg-transparent border-none font-bold text-gray-900 text-sm focus:ring-0 cursor-pointer" />
+                                                <span className="text-gray-300 font-light">—</span>
+                                                <input type="time" value={dan.do} disabled={dan.isNeradniDan} onChange={(e) => handleVremeChange(index, "do", e.target.value)} className="bg-transparent border-none font-bold text-gray-900 text-sm focus:ring-0 cursor-pointer" />
                                             </div>
 
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input type="checkbox" checked={dan.isNeradniDan} onChange={(e) => handleVremeChange(index, "isNeradniDan", e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500" />
-                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Zatvoreno</span>
-                                            </label>
+                                            <button 
+                                                onClick={() => handleVremeChange(index, "isNeradniDan", !dan.isNeradniDan)}
+                                                className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${dan.isNeradniDan ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                            >
+                                                {dan.isNeradniDan ? 'Zatvoreno' : 'Otvoreno'}
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={() => selektovanaFirmaId && sacuvajRadnoVreme(selektovanaFirmaId, radnoVreme)} className="mt-8 w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
-                                    Sačuvaj izmene vremena
+
+                                <button 
+                                    onClick={() => selektovanaFirmaId && sacuvajRadnoVreme(selektovanaFirmaId, radnoVreme)} 
+                                    className="mt-8 w-full bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2 group"
+                                >
+                                    <span>Sačuvaj izmene vremena</span>
+                                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                                 </button>
                             </div>
                         </div>

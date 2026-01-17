@@ -40,15 +40,16 @@ export default function Login() {
         body: JSON.stringify(data),
         credentials: "include",
       });
+      
+      const rezultat = await res.json();
 
       if (!res.ok) {
         if (res.status === 400) {
-          throw new Error("Pogrešno korisničko ime ili lozinka.");
+          throw new Error(rezultat.message);
         }
         throw new Error("Greška prilikom slanja zahteva.");
       }
 
-      const rezultat = await res.json();
 
       if (rezultat.token) {
         setCookie("AuthToken", rezultat.token, {

@@ -5,7 +5,7 @@ import { FirmaAsortimanDTO } from "@/types/firma";
 import { getCookie } from "cookies-next";
 import { useEffect, useState, useCallback } from "react";
 
-// Definišemo interfejs za termine kako bismo izbegli 'any'
+// Definišemo interfejs za termine
 interface TerminDTO {
   datumTermina: string;
   imeMusterije: string;
@@ -15,11 +15,10 @@ interface TerminDTO {
 
 export default function Home() {
   const korisnik = dajKorisnikaIzTokena();
-  
-  // 1. STABILIZACIJA: Izvlačimo primitivne vrednosti. 
-  // One se porede po vrednosti (1 === 1), a ne po referenci u memoriji.
   const idFirme = korisnik?.idFirme;
-  const idLokacije = korisnik?.idLokacije;
+
+  // State za praćenje aktivnog lokala koji se može menjati kroz navigaciju
+  const [trenutniIdLokacije, setTrenutniIdLokacije] = useState<string | null>(null);
 
   const [asortiman, setAsortiman] = useState<FirmaAsortimanDTO[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -27,38 +26,29 @@ export default function Home() {
   const [loadingTermini, setLoadingTermini] = useState(false);
   const [mesecniTermini, setMesecniTermini] = useState<TerminDTO[]>([]);
 
-  // Fetch asortimana - sada zavisi samo od ID-ja, ne od celog objekta
+  // 1. INICIJALIZACIJA: Čitamo početni ID iz localStorage ili iz tokena
   useEffect(() => {
-    const fetchAsortiman = async () => {
-      if (!idFirme) return;
-      try {
-        const token = getCookie("AuthToken");
-        const query = `${process.env.NEXT_PUBLIC_API_URL}/Usluge/DajAsortiman?idFirme=${idFirme}`;
-        const res = await fetch(query, {
-          headers: { "Authorization": `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data: FirmaAsortimanDTO[] = await res.json();
-          setAsortiman(data);
-        }
-      } catch (err) {
-        console.error("Greška kod asortimana:", err);
-      }
-    };
-    fetchAsortiman();
-  }, [idFirme]); 
+    const sacuvanId = localStorage.getItem('active_salon_id');
+    if (sacuvanId) {
+      setTrenutniIdLokacije(sacuvanId);
+    } else if (korisnik?.idLokacije) {
+      const defaultId = String(korisnik.idLokacije);
+      setTrenutniIdLokacije(defaultId);
+      localStorage.setItem('active_salon_id', defaultId);
+    }
+  }, [korisnik?.idLokacije]);
 
-  // 2. REŠENJE ZA LOOP: fetchDnevneTermine sada zavisi od stabilnih ID-jeva
+
+  // 2. FETCH FUNKCIJE: Koriste 'trenutniIdLokacije' iz state-a
   const fetchDnevneTermine = useCallback(async (date: Date) => {
-    if (!idFirme || !idLokacije) return;
+    if (!idFirme || !trenutniIdLokacije) return;
     
     setLoadingTermini(true);
     const sqlDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
     
     try {
       const token = getCookie("AuthToken");
-      // OBAVEZNO: Proveri da li je NEXT_PUBLIC_API_URL u .env produkcije ispravan (ne localhost!)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajZakazaneTermine?idFirme=${idFirme}&idLokacije=${idLokacije}&datumZakazivanja=${sqlDate}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajZakazaneTermine?idFirme=${idFirme}&idLokacije=${trenutniIdLokacije}&datumZakazivanja=${sqlDate}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       
@@ -67,24 +57,18 @@ export default function Home() {
         setDnevniTermini(data);
       }
     } catch (err) {
-      console.error("Greška pri osvežavanju termina:", err);
+      console.error("Greška pri osvežavanju dnevnih termina:", err);
     } finally {
       setLoadingTermini(false);
     }
-    // Linter će biti zadovoljan jer koristimo proste tipove podataka
-  }, [idFirme, idLokacije]);
+  }, [idFirme, trenutniIdLokacije]);
 
-  useEffect(() => {
-    fetchDnevneTermine(selectedDate);
-  }, [selectedDate, fetchDnevneTermine]);
-
-  // Mesecni termini
   const fetchMesecniTermini = useCallback(async (godina: number, mesec: number) => {
-    if (!idFirme || !idLokacije) return;
+    if (!idFirme || !trenutniIdLokacije) return;
     try {
         const token = getCookie("AuthToken");
         const res = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajZakazaneTermineZaMesec?idFirme=${idFirme}&idLokacije=${idLokacije}&mesec=${mesec + 1}&godina=${godina}`,
+            `${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajZakazaneTermineZaMesec?idFirme=${idFirme}&idLokacije=${trenutniIdLokacije}&mesec=${mesec + 1}&godina=${godina}`,
             { headers: { "Authorization": `Bearer ${token}` } }
         );
         if (res.ok) {
@@ -92,16 +76,61 @@ export default function Home() {
             setMesecniTermini(data);
         }
     } catch (err) {
-        console.error("Greška:", err);
+        console.error("Greška pri osvežavanju mesečnih termina:", err);
     }
-  }, [idFirme, idLokacije]);
+  }, [idFirme, trenutniIdLokacije]);
 
+  // 3. EVENT LISTENERS: Slušamo navigaciju i globalne promene
   useEffect(() => {
-      const d = new Date();
-      fetchMesecniTermini(d.getFullYear(), d.getMonth());
-  }, [fetchMesecniTermini]);
+    const osveziLokal = () => {
+      const noviId = localStorage.getItem('active_salon_id');
+      if (noviId && noviId !== trenutniIdLokacije) {
+        console.log("Menjam lokal na:", noviId);
+        setTrenutniIdLokacije(noviId);
+      }
+    };
 
+    const osveziSve = () => {
+      fetchDnevneTermine(selectedDate);
+      fetchMesecniTermini(selectedDate.getFullYear(), selectedDate.getMonth());
+    };
 
+    window.addEventListener("salon_changed", osveziLokal);
+    window.addEventListener("terminZakazanGlobalno", osveziSve);
+
+    return () => {
+      window.removeEventListener("salon_changed", osveziLokal);
+      window.removeEventListener("terminZakazanGlobalno", osveziSve);
+    };
+  }, [trenutniIdLokacije, selectedDate, fetchDnevneTermine, fetchMesecniTermini]);
+
+  // 4. AUTOMATSKO OSVEŽAVANJE: Reaguje na promenu datuma ILI lokacije
+  useEffect(() => {
+    if (trenutniIdLokacije) {
+      fetchDnevneTermine(selectedDate);
+      fetchMesecniTermini(selectedDate.getFullYear(), selectedDate.getMonth());
+    }
+  }, [selectedDate, trenutniIdLokacije, fetchDnevneTermine, fetchMesecniTermini]);
+
+  // Fetch asortimana (zavisi samo od firme)
+  useEffect(() => {
+    const fetchAsortiman = async () => {
+      if (!idFirme) return;
+      try {
+        const token = getCookie("AuthToken");
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Usluge/DajAsortiman?idFirme=${idFirme}`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAsortiman(data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchAsortiman();
+  }, [idFirme]);
 
   return (
     <div className="w-full">
@@ -109,14 +138,18 @@ export default function Home() {
       <div className="mb-6">
         <Kalendar 
           asortiman={asortiman}
+          idLokacije={Number(trenutniIdLokacije)}
           mesecniTermini={mesecniTermini}
           onDateSelect={(date) => setSelectedDate(date)}
-          onTerminZakazan={() => fetchDnevneTermine(selectedDate)}
+          onTerminZakazan={() => {
+            fetchDnevneTermine(selectedDate);
+            fetchMesecniTermini(selectedDate.getFullYear(), selectedDate.getMonth());
+          }}          
           onMonthChange={(year, month) => fetchMesecniTermini(year, month)}
         />
       </div>
 
-      {/* Mini pregled kalendara */}
+      {/* Lista termina za odabrani dan */}
       <div className="bg-white border-t border-gray-200">
         <div className="p-4 sm:p-6">
           <div className="flex justify-between items-center mb-6">

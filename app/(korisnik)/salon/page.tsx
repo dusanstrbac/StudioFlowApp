@@ -1,6 +1,8 @@
 'use client';
 import DodajInventar from "@/components/DodajInventar";
 import UslugaModal from "@/components/UslugaModal";
+import { dajKorisnikaIzTokena } from "@/lib/auth";
+import { korisnikJeVlasnik } from "@/lib/proveraUloge";
 import { Firma, FirmaAsortimanDTO, FirmaInventarDTO, Lokacije } from "@/types/firma";
 import { getCookie } from "cookies-next";
 import { motion } from "framer-motion";
@@ -11,13 +13,14 @@ import { toast } from "sonner";
 const tabs = ['Osnovne informacije', 'Zaposleni', 'Inventar', 'Usluge'];
 
 export default function SalonPage() {
+    const korisnik = dajKorisnikaIzTokena();
+    const isReadOnly = !korisnikJeVlasnik(korisnik);
     const [firma, setFirma] = useState<Firma | null>(null); 
     const [salons, setSalons] = useState<Lokacije[]>([]);
-    const [selectedSalonId, setSelectedSalonId] = useState<number | null>(null);
     const [isInventarModalOpen, setInventoryModalOpen] = useState(false);
     const [isUslugeModalOpen, setIsUslugeModalOpen] = useState(false);
     const [asortiman, setAsortiman] = useState<FirmaAsortimanDTO[]>([]);
-    
+    const [selectedSalonId, setSelectedSalonId] = useState<number | null>(korisnik?.idLokacije ? parseInt(korisnik.idLokacije) : null);    
     const [activeTab, setActiveTab] = useState(tabs[0]);
     const containerRef = useRef<HTMLDivElement>(null);
     const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0 });
@@ -27,6 +30,15 @@ export default function SalonPage() {
     const [searchInventoryTerm, setSearchInventoryTerm] = useState("");
     const [searchServiceTerm, setSearchServiceTerm] = useState(""); 
     const [searchTerm, setSearchTerm] = useState("");
+    const idFirme = korisnik?.idFirme || null;
+    
+    const odgovornoLice = useMemo(() => {
+        if (!selectedSalon?.zaposleni) return null;
+
+        return selectedSalon.zaposleni.find(
+            (z) => z.uloga.toLowerCase() === "vlasnik"
+        );
+    }, [selectedSalon]);
 
     // Pomeranje linije ispod taba
     useEffect(() => {
@@ -46,22 +58,28 @@ export default function SalonPage() {
         const fetchFirma = async () => {
             try {
                 const token = getCookie("AuthToken");
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Firme/DajFirme`, {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Firme/DajFirme?idFirme=${korisnik?.idFirme}`, {
                     method: "GET",
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 const data = await res.json();
+                
                 if (data && data[0]) {
-                    setFirma(data[0]);
-                    setSalons(data[0].lokacije || []);
-                    setSelectedSalonId(data[0].lokacije[0]?.id || null);
+                    const firmaData = data[0];
+                    setFirma(firmaData);
+                    setSalons(firmaData.lokacije || []);
+                    
+                    // Ako nemamo ID iz tokena, uzmi prvi dostupni iz baze
+                    if (!selectedSalonId && firmaData.lokacije?.length > 0) {
+                        setSelectedSalonId(firmaData.lokacije[0].id);
+                    }
                 }
             } catch (error) {
                 console.error('Greška prilikom učitavanja firme:', error);
             }
         };
-        fetchFirma();
-    }, []);
+        if (idFirme) fetchFirma();
+    }, [korisnik?.idFirme]);
 
     // Fetch asortimana i inventara
     useEffect(() => {
@@ -206,18 +224,20 @@ export default function SalonPage() {
                             </div>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
-                            {[
-                                { label: 'Tim', value: filteredEmployees.length, sub: 'zaposlenih' },
-                                { label: 'Meni', value: filteredServices.length, sub: 'usluga' },
-                                { label: 'Magacin', value: inventory.length, sub: 'artikala' },
-                                { label: 'Menadžment', value: 'Milica P.', sub: 'odgovorno lice' },
-                            ].map((item, i) => (
-                                <div key={i}>
+                        {[
+                            { label: 'Tim', value: filteredEmployees.length, sub: 'zaposlenih' },
+                            { label: 'Meni', value: filteredServices.length, sub: 'usluga' },
+                            { label: 'Magacin', value: inventory.length, sub: 'artikala' },
+                            { label: 'Menadžment', value: odgovornoLice ? odgovornoLice.ime : 'N/A', sub: 'odgovorno lice' },
+                        ].map((item, i) => (
+                            <div key={i} className="flex flex-col justify-between h-full px-3 mb-6">
+                                <div>
                                     <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">{item.label}</p>
                                     <p className="text-3xl font-light">{item.value}</p>
-                                    <p className="text-xs text-gray-400 italic">{item.sub}</p>
                                 </div>
-                            ))}
+                                <p className="text-xs text-gray-400 italic mt-2">{item.sub}</p>
+                            </div>
+                        ))}
                         </div>
                     </div>
                 );
@@ -275,33 +295,40 @@ export default function SalonPage() {
                             {inventory.filter(i => i.nazivProizvoda.toLowerCase().includes(searchInventoryTerm.toLowerCase())).map((item) => {
                                 const status = getInventoryStatus(item);
                                 return (
-                                    <div key={item.id} className="group flex items-center py-6 hover:bg-gray-50 px-2">
+                                    <div key={item.id} className="group flex items-center py-6 hover:bg-gray-50 px-2 transition-colors">
                                         <div className="flex-1">
                                             <div className="flex items-baseline gap-2">
                                                 <p className="text-lg font-light">{item.nazivProizvoda}</p>
-                                                <div className="flex-1 border-b border-dotted mx-2"></div>
+                                                <div className="flex-1 border-b border-dotted mx-2 border-gray-200"></div>
                                                 <p className="text-sm font-mono">{item.trenutnaKolicina} <span className="text-[10px] text-gray-400">KOM</span></p>
                                             </div>
                                             <div className="flex gap-6 mt-1">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] text-gray-400 uppercase">Min:</span>
-                                                    <input 
-                                                        type="number"
-                                                        value={item.minKolicina}
-                                                        className="text-[10px] font-bold w-10 bg-transparent outline-none"
-                                                        onChange={(e) => {
-                                                            const val = parseInt(e.target.value) || 0;
-                                                            setInventory(prev => prev.map(i => i.id === item.id ? { ...i, minKolicina: val } : i));
-                                                        }}
-                                                        onBlur={(e) => handleUpdateMinKolicina(item, parseInt(e.target.value))}
-                                                    />
+                                                    <span className="text-[10px] text-gray-400 uppercase">Minimalna zaliha:</span>
+                                                    <span className="text-[10px] font-bold">{item.minKolicina}</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-8 ml-12">
                                             <span className={`text-[10px] font-bold uppercase ${status.color}`}>{status.label}</span>
-                                            <div className="flex gap-4 opacity-0 group-hover:opacity-100">
-                                                <Trash2 size={14} className="cursor-pointer hover:text-red-500" onClick={() => handleDeleteInventar(item)} />
+                                            <div className="flex gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {/* OLOVČICA ZA PROMPT */}
+                                                <Edit2 
+                                                    size={14} 
+                                                    className="cursor-pointer hover:text-blue-600 text-gray-400" 
+                                                    onClick={() => {
+                                                        const novo = window.prompt(`Unesite novu minimalnu količinu za ${item.nazivProizvoda}:`, String(item.minKolicina));
+                                                        if (novo !== null && !isNaN(parseInt(novo))) {
+                                                            handleUpdateMinKolicina(item, parseInt(novo));
+                                                        }
+                                                    }} 
+                                                />
+                                                {/* KANTICA */}
+                                                <Trash2 
+                                                    size={14} 
+                                                    className="cursor-pointer hover:text-red-500 text-gray-400" 
+                                                    onClick={() => handleDeleteInventar(item)} 
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -357,18 +384,26 @@ export default function SalonPage() {
                     <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 px-1">Salon</h1>
                     
                     {selectedSalon && (
-                        <div className="w-full sm:w-auto px-1"> 
-                            <select
-                                value={selectedSalonId ?? ''}
-                                onChange={(e) => setSelectedSalonId(parseInt(e.target.value))}
-                                className="w-full sm:min-w-[200px] p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 ring-blue-50 transition-all cursor-pointer appearance-none"
-                            >
-                                {salons.map((salon) => (
-                                    <option key={salon.id} value={salon.id}>
-                                        {firma?.naziv} - {salon.nazivLokacije}
-                                    </option>
-                                ))}
-                            </select>
+                        <div className="w-full sm:w-auto px-1">
+                            {isReadOnly ? (
+                                // ReadOnly prikaz za zaposlene
+                                <div className="p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-700">
+                                    {firma?.naziv} - {selectedSalon.nazivLokacije}
+                                </div>
+                            ) : (
+                                // Selektor za vlasnika
+                                <select
+                                    value={selectedSalonId ?? ''}
+                                    onChange={(e) => setSelectedSalonId(parseInt(e.target.value))}
+                                    className="w-full sm:min-w-[200px] p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 ring-blue-50 transition-all cursor-pointer appearance-none"
+                                >
+                                    {salons.map((salon) => (
+                                        <option key={salon.id} value={salon.id}>
+                                            {firma?.naziv} - {salon.nazivLokacije}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
                             <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1.5 ml-1 hidden sm:block">
                                 {selectedSalon.adresa}
                             </p>

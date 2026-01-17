@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import KalendarModal from './KalendarModal';
 import { FirmaAsortimanDTO, Termin } from '@/types/firma';
@@ -10,6 +10,7 @@ interface KalendarProps {
   onDateSelect?: (date: Date) => void;
   onTerminZakazan?: () => void;
   onMonthChange?: (year: number, month: number) => void;
+  idLokacije: number;
 }
 
 // Helper funkcije
@@ -24,7 +25,7 @@ const fullWeekDays = [
   'Nedelja', 'Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota'
 ];
 
-const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakazan, onMonthChange }: KalendarProps) => {
+const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakazan, onMonthChange, idLokacije }: KalendarProps) => {
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<number>(today.getMonth());
@@ -36,6 +37,21 @@ const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakaza
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth + 1);
   const startDay = getStartDayOfMonth(currentYear, currentMonth + 1);
+
+  // --- OSLUŠKIVAČ ZA PROMENU SALONA ---
+  useEffect(() => {
+    const handleSalonChange = () => {
+      // Kada dobijemo signal iz SideNavigation, resetujemo selekciju i osvežavamo podatke
+      setSelectedDate(null);
+      if (onMonthChange) {
+        // Ponovo okidamo funkciju za trenutni mesec i godinu da bi roditelj povukao nove termine
+        onMonthChange(currentYear, currentMonth);
+      }
+    };
+
+    window.addEventListener('salon_changed', handleSalonChange);
+    return () => window.removeEventListener('salon_changed', handleSalonChange);
+  }, [currentMonth, currentYear, onMonthChange]);
 
   // Funkcija za promenu meseca/godine
   const updateMonth = (newMonth: number, newYear: number) => {
@@ -66,7 +82,7 @@ const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakaza
     setIsSelectOpen(prev => !prev);
   };
 
-const renderDays = () => {
+  const renderDays = () => {
     const days = [];
     const prevMonthDays = getDaysInMonth(currentYear, currentMonth);
     
@@ -75,7 +91,7 @@ const renderDays = () => {
     const nextM = currentMonth === 11 ? 0 : currentMonth + 1;
     const nextY = currentMonth === 11 ? currentYear + 1 : currentYear;
 
-    // 1. Dani iz prethodnog meseca (JASNO POSIVLJENI)
+    // 1. Dani iz prethodnog meseca
     for (let i = 0; i < startDay; i++) {
       const prevMonthDay = prevMonthDays - startDay + i + 1;
       days.push(
@@ -91,7 +107,7 @@ const renderDays = () => {
       );
     }
 
-    // 2. Glavni dani meseca (ISTAKNUTI)
+    // 2. Glavni dani meseca
     for (let day = 1; day <= daysInMonth; day++) {
       const isSelected = selectedDate?.getDate() === day && 
                          selectedDate.getMonth() === currentMonth && 
@@ -134,7 +150,7 @@ const renderDays = () => {
       );
     }
 
-    // 3. Dani iz sledećeg meseca (JASNO POSIVLJENI)
+    // 3. Dani iz sledećeg meseca
     const remainingCells = 42 - days.length;
     for (let i = 1; i <= remainingCells; i++) {
       days.push(
@@ -206,7 +222,7 @@ const renderDays = () => {
       </div>
 
       {isModalOpen && selectedDate && (
-        <KalendarModal date={selectedDate} onClose={() => setIsModalOpen(false)} asortiman={asortiman} onTerminZakazan={onTerminZakazan} />
+        <KalendarModal date={selectedDate} onClose={() => setIsModalOpen(false)} asortiman={asortiman} onTerminZakazan={onTerminZakazan} idLokacije={idLokacije} />
       )}
     </div>
   );

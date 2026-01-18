@@ -103,6 +103,7 @@ export default function PodesavanjaPage() {
         } catch (error) {
             console.error('Greška pri dohvatanju firmi:', error);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selektovanaFirmaId]);
 
     const ucitajRadnoVreme = useCallback(async (id: number) => {

@@ -95,7 +95,6 @@ const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakaza
     for (let i = 0; i < startDay; i++) {
       const prevMonthDay = prevMonthDays - startDay + i + 1;
       // Pravilno računanje godine i meseca za prethodni mesec
-      const d = new Date(currentYear, currentMonth - 1, prevMonthDay);
       days.push(
         <button 
           key={`prev-${i}`} 

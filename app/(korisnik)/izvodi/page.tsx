@@ -33,6 +33,13 @@ interface jsPDFWithAutoTable extends jsPDF {
   };
 }
 
+interface StatCardProps {
+  title: string;
+  amount: number;
+  type: 'prihod' | 'trosak' | 'profit';
+  loading: boolean;
+}
+
 const Izvodi = () => {
   const korisnik = dajKorisnikaIzTokena();
   
@@ -294,7 +301,7 @@ const Izvodi = () => {
   );
 };
 
-const StatCard = ({ title, amount, type, loading }: any) => {
+const StatCard = ({ title, amount, type, loading }: StatCardProps) => {
   const styles = {
     prihod: "bg-green-500 text-white",
     trosak: "bg-red-500 text-white",

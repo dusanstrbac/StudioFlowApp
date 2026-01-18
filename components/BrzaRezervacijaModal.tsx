@@ -131,7 +131,7 @@ const BrzaRezervacijaModal = ({ isOpen, onClose, onSuccess }: Props) => {
           setStep(2);
         }
       }
-    } catch (err) {
+    } catch {
       setError("Server nije dostupan.");
     } finally {
       setLoading(false);
@@ -175,7 +175,7 @@ const BrzaRezervacijaModal = ({ isOpen, onClose, onSuccess }: Props) => {
         const errorText = await response.text();
         setError(errorText || "Greška prilikom upisa.");
       }
-    } catch (err) {
+    } catch {
       setError("Greška pri komunikaciji sa serverom.");
     } finally {
       setLoading(false);
@@ -219,20 +219,33 @@ const BrzaRezervacijaModal = ({ isOpen, onClose, onSuccess }: Props) => {
             <form onSubmit={handleFindSlots} className="space-y-6">
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Usluga</label>
-                  <select
-                    required
-                    className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl outline-none text-sm font-bold"
-                    value={formData.uslugaId}
-                    onChange={handleUslugaChange}
-                  >
-                    <option value="">Izaberite uslugu...</option>
-                    {usluge.map((u, index) => (
-                      <option key={`${u.idUsluge}-${index}`} value={u.idUsluge}>{u.nazivUsluge}</option>
-                    ))}
-                  </select>
-                </div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                    Usluga
+                  </label>
 
+                  {loadingUsluge ? (
+                    <div className="w-full p-3.5 bg-gray-100 border border-gray-200 rounded-2xl flex items-center gap-3">
+                      <Loader2 size={16} className="animate-spin text-gray-400" />
+                      <span className="text-sm font-bold text-gray-400">
+                        Učitavanje usluga...
+                      </span>
+                    </div>
+                  ) : (
+                    <select
+                      required
+                      className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl outline-none text-sm font-bold"
+                      value={formData.uslugaId}
+                      onChange={handleUslugaChange}
+                    >
+                      <option value="">Izaberite uslugu...</option>
+                      {usluge.map((u, index) => (
+                        <option key={`${u.idUsluge}-${index}`} value={u.idUsluge}>
+                          {u.nazivUsluge}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Trajanje (min)</label>

@@ -1,54 +1,47 @@
-2026-01-07 18:12:50,989 DEBUG - Starting WinSW in console mode
-2026-01-07 18:12:51,020 INFO  - Uninstalling service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
-2026-01-07 18:12:51,026 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' was uninstalled successfully.
-2026-01-07 18:12:56,975 DEBUG - Starting WinSW in console mode
-2026-01-07 18:12:57,008 INFO  - Installing service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
-2026-01-07 18:12:57,026 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' was installed successfully.
-2026-01-07 18:13:14,705 DEBUG - Starting WinSW in console mode
-2026-01-07 18:13:14,741 INFO  - Starting service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
-2026-01-07 18:13:15,087 DEBUG - Starting WinSW in service mode
-2026-01-07 18:13:15,119 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' started successfully.
-2026-01-07 18:13:15,236 INFO  - Starting node node_modules\next\dist\bin\next start -p 7777 -H 0.0.0.0
-2026-01-07 18:13:15,263 INFO  - Started process 12628
-2026-01-07 18:13:15,276 DEBUG - Forwarding logs of the process System.Diagnostics.Process (node) to WinSW.RollingLogAppender
-2026-01-09 17:30:26,872 DEBUG - Starting WinSW in console mode
-2026-01-09 17:30:26,913 INFO  - Stopping service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
-2026-01-09 17:30:26,922 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' stopped successfully.
-2026-01-09 17:30:26,932 INFO  - Stopping efrizer-frontend
-2026-01-09 17:30:26,933 DEBUG - ProcessKill 12628
-2026-01-09 17:30:26,939 DEBUG - Stopping process 12628...
-2026-01-09 17:30:26,969 DEBUG - Process 12628 canceled with code 0.
-2026-01-09 17:30:26,974 INFO  - Finished efrizer-frontend
-2026-01-09 17:30:31,764 DEBUG - Starting WinSW in console mode
-2026-01-09 17:30:31,798 INFO  - Uninstalling service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
-2026-01-09 17:30:31,805 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' was uninstalled successfully.
-2026-01-09 17:30:35,151 DEBUG - Starting WinSW in console mode
-2026-01-09 17:30:35,186 INFO  - Installing service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
-2026-01-09 17:30:35,208 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' was installed successfully.
-2026-01-09 17:30:38,248 DEBUG - Starting WinSW in console mode
-2026-01-09 17:30:38,287 INFO  - Starting service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
-2026-01-09 17:30:38,653 DEBUG - Starting WinSW in service mode
-2026-01-09 17:30:38,689 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' started successfully.
-2026-01-09 17:30:38,814 INFO  - Starting node node_modules\next\dist\bin\next start -p 7777 -H 0.0.0.0
-2026-01-09 17:30:38,842 INFO  - Started process 23156
-2026-01-09 17:30:38,858 DEBUG - Forwarding logs of the process System.Diagnostics.Process (node) to WinSW.RollingLogAppender
-2026-01-09 17:31:03,042 DEBUG - Starting WinSW in console mode
-2026-01-09 17:31:03,084 INFO  - Stopping service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
-2026-01-09 17:31:03,092 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' stopped successfully.
-2026-01-09 17:31:03,093 INFO  - Stopping efrizer-frontend
-2026-01-09 17:31:03,094 DEBUG - ProcessKill 23156
-2026-01-09 17:31:03,097 DEBUG - Stopping process 23156...
-2026-01-09 17:31:03,119 DEBUG - Process 23156 canceled with code 0.
-2026-01-09 17:31:03,123 INFO  - Finished efrizer-frontend
-2026-01-09 17:31:08,173 DEBUG - Starting WinSW in console mode
-2026-01-09 17:31:10,800 DEBUG - Starting WinSW in console mode
-2026-01-09 17:31:10,840 INFO  - Stopping service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
-2026-01-09 17:31:10,853 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' has already stopped.
-2026-01-09 17:33:22,663 DEBUG - Starting WinSW in console mode
-2026-01-09 17:33:25,146 DEBUG - Starting WinSW in console mode
-2026-01-09 17:33:25,185 INFO  - Starting service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
-2026-01-09 17:33:25,546 DEBUG - Starting WinSW in service mode
-2026-01-09 17:33:25,580 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' started successfully.
-2026-01-09 17:33:25,699 INFO  - Starting node node_modules\next\dist\bin\next start -p 7777 -H 0.0.0.0
-2026-01-09 17:33:25,726 INFO  - Started process 24568
-2026-01-09 17:33:25,740 DEBUG - Forwarding logs of the process System.Diagnostics.Process (node) to WinSW.RollingLogAppender
+2026-01-17 15:38:12,184 DEBUG - Starting WinSW in console mode
+2026-01-17 15:38:12,219 INFO  - Installing service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
+2026-01-17 15:38:12,238 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' was installed successfully.
+2026-01-17 15:38:14,822 DEBUG - Starting WinSW in console mode
+2026-01-17 15:38:14,861 INFO  - Starting service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
+2026-01-17 15:38:15,244 DEBUG - Starting WinSW in service mode
+2026-01-17 15:38:15,280 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' started successfully.
+2026-01-17 15:38:15,405 INFO  - Starting node node_modules\next\dist\bin\next start -p 7777 -H 0.0.0.0
+2026-01-17 15:38:15,432 INFO  - Started process 36120
+2026-01-17 15:38:15,449 DEBUG - Forwarding logs of the process System.Diagnostics.Process (node) to WinSW.RollingLogAppender
+2026-01-17 15:38:20,374 DEBUG - Starting WinSW in console mode
+2026-01-17 15:38:22,182 DEBUG - Starting WinSW in console mode
+2026-01-17 15:38:22,225 INFO  - Stopping service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
+2026-01-17 15:38:22,234 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' stopped successfully.
+2026-01-17 15:38:22,234 INFO  - Stopping efrizer-frontend
+2026-01-17 15:38:22,235 DEBUG - ProcessKill 36120
+2026-01-17 15:38:22,237 DEBUG - Stopping process 36120...
+2026-01-17 15:38:22,265 DEBUG - Process 36120 canceled with code 0.
+2026-01-17 15:38:22,268 INFO  - Finished efrizer-frontend
+2026-01-17 15:38:48,801 DEBUG - Starting WinSW in console mode
+2026-01-17 15:38:50,350 DEBUG - Starting WinSW in console mode
+2026-01-17 15:38:50,390 INFO  - Starting service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
+2026-01-17 15:38:50,753 DEBUG - Starting WinSW in service mode
+2026-01-17 15:38:50,788 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' started successfully.
+2026-01-17 15:38:50,909 INFO  - Starting node node_modules\next\dist\bin\next start -p 7777 -H 0.0.0.0
+2026-01-17 15:38:50,936 INFO  - Started process 19924
+2026-01-17 15:38:50,953 DEBUG - Forwarding logs of the process System.Diagnostics.Process (node) to WinSW.RollingLogAppender
+2026-01-17 15:47:15,652 DEBUG - Starting WinSW in console mode
+2026-01-17 15:47:15,690 INFO  - Stopping service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
+2026-01-17 15:47:15,698 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' stopped successfully.
+2026-01-17 15:47:15,699 INFO  - Stopping efrizer-frontend
+2026-01-17 15:47:15,699 DEBUG - ProcessKill 19924
+2026-01-17 15:47:15,702 DEBUG - Stopping process 19924...
+2026-01-17 15:47:15,731 DEBUG - Process 19924 canceled with code 0.
+2026-01-17 15:47:15,734 INFO  - Finished efrizer-frontend
+2026-01-17 16:23:38,351 DEBUG - Starting WinSW in console mode
+2026-01-17 16:23:39,987 DEBUG - Starting WinSW in console mode
+2026-01-17 16:23:40,028 INFO  - Stopping service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
+2026-01-17 16:23:40,040 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' has already stopped.
+2026-01-17 16:24:05,814 DEBUG - Starting WinSW in console mode
+2026-01-17 16:24:07,379 DEBUG - Starting WinSW in console mode
+2026-01-17 16:24:07,417 INFO  - Starting service 'eFrizer Frontend (Next.js) (efrizer-frontend)'...
+2026-01-17 16:24:07,769 DEBUG - Starting WinSW in service mode
+2026-01-17 16:24:07,802 INFO  - Service 'eFrizer Frontend (Next.js) (efrizer-frontend)' started successfully.
+2026-01-17 16:24:07,918 INFO  - Starting node node_modules\next\dist\bin\next start -p 7777 -H 0.0.0.0
+2026-01-17 16:24:07,944 INFO  - Started process 35552
+2026-01-17 16:24:07,959 DEBUG - Forwarding logs of the process System.Diagnostics.Process (node) to WinSW.RollingLogAppender

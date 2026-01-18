@@ -1,6 +1,5 @@
 'use client';
 import { dajKorisnikaIzTokena } from "@/lib/auth";
-import { korisnikJeVlasnik } from "@/lib/proveraUloge";
 import { FirmaAsortimanDTO } from "@/types/firma";
 import { Address } from "@/types/zakazivanje";
 import { getCookie } from "cookies-next";
@@ -28,7 +27,6 @@ const ZakazivanjeTermina = ({ onClose, date, asortiman, onTerminZakazi, idLokaci
   const [telefonKorisnika, setTelefonKorisnika] = useState<string>('');
   const [errors, setErrors] = useState({ userName: false, selectedService: false, arrivalTime: false, selectedAddress: false });
   const korisnik = dajKorisnikaIzTokena();
-  const isReadOnly = !korisnikJeVlasnik(korisnik);
 
   const dateObj = new Date(`${date}T00:00:00`);
   const formattedDate = `${dateObj.getDate()}. ${dateObj.toLocaleString("sr-Latn-RS", { month: "long" })} ${dateObj.getFullYear()}`;
@@ -76,7 +74,7 @@ useEffect(() => {
         }
     };
     fetchLokacije();
-}, [korisnik?.idFirme, idLokacije]);
+}, [korisnik?.idFirme, korisnik?.idLokacije, idLokacije]);
 
   useEffect(() => {
     if (!selectedAddress || !selectedService) {

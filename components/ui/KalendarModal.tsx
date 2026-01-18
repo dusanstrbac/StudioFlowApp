@@ -49,7 +49,7 @@ interface TrosakDTO {
     kategorija?: string;
 }
 
-const KalendarModal: React.FC<KalendarModalProps> = ({ date, onClose, asortiman, onTerminZakazan, idLokacije }) => {
+const KalendarModal: React.FC<KalendarModalProps> = ({ date, onClose, asortiman, onTerminZakazan }) => {
     const formattedDate = `${date.getDate()}. ${date.toLocaleString('sr-Latn-RS', { month: 'long' })} ${date.getFullYear()}`;
     const sqlDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
 

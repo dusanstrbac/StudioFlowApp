@@ -3,11 +3,10 @@ import { useState, useEffect } from "react";
 import { Building2, House, LibraryBig, Settings, User, ChevronLeft, ChevronRight, Menu, X, Store } from "lucide-react";
 import Button from "./ui/Button";
 import { useRouter, usePathname } from "next/navigation";
-import { dajKorisnikaIzTokena } from "@/lib/auth";
+import { dajKorisnikaIzTokena, KorisnikToken } from "@/lib/auth";
 import { getCookie } from "cookies-next";
 import { Lokacije } from "@/types/firma";
 import { korisnikJeVlasnik } from "@/lib/proveraUloge";
-import { Korisnik } from "@/types/korisnik";
 
 const buttons = [
     { title: "Početna", icon: <House size={20} />, action: () => '/', buttonType: "pocetna" as const },
@@ -23,7 +22,7 @@ const SideNavigation = () => {
     
     // State-ovi
     const [isMounted, setIsMounted] = useState(false);
-    const [korisnik, setKorisnik] = useState<Korisnik | any>(null);
+    const [korisnik, setKorisnik] = useState<KorisnikToken | null>(null);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [salons, setSalons] = useState<Lokacije[]>([]);
@@ -103,13 +102,13 @@ const SideNavigation = () => {
     // SPREČAVANJE HYDRATION ERROR-A
     // Dok se ne montira na klijentu, ne renderujemo ništa ili renderujemo osnovni placeholder
     if (!isMounted) {
-        return <div className="hidden lg:block w-[80px] h-screen bg-white border-r border-gray-100" />;
+        return <div className="hidden lg:block w-20 h-screen bg-white border-r border-gray-100" />;
     }
 
     return (
         <>
             {/* MOBILNI HEADER */}
-            <div className="lg:hidden fixed top-0 left-0 w-full h-16 bg-white border-b border-gray-200 px-4 flex items-center justify-between z-[60]">
+            <div className="lg:hidden fixed top-0 left-0 w-full h-16 bg-white border-b border-gray-200 px-4 flex items-center justify-between z-60">
                 <h1 className="font-black text-blue-600">StudioFlow</h1>
                 <button onClick={() => setIsMobileOpen(!isMobileOpen)} className="p-2 bg-gray-50 rounded-lg text-gray-600">
                     {isMobileOpen ? <X /> : <Menu />}
@@ -118,14 +117,14 @@ const SideNavigation = () => {
 
             {/* OVERLAY */}
             {isMobileOpen && (
-                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[65] lg:hidden" onClick={() => setIsMobileOpen(false)} />
+                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-65 lg:hidden" onClick={() => setIsMobileOpen(false)} />
             )}
 
             {/* SIDEBAR KONTEJNER */}
             <div 
                 id="main-sidebar"
                 className={`
-                    fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-[70]
+                    fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-70
                     ${isMobileOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full lg:translate-x-0'}
                     ${isCollapsed ? 'lg:w-[80px]' : 'lg:w-[240px]'}
                 `}

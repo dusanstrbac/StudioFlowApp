@@ -55,21 +55,21 @@ export default function SalonPage() {
 
     // Fetch firme
     useEffect(() => {
+        if (!idFirme) return;
+
         const fetchFirma = async () => {
             try {
                 const token = getCookie("AuthToken");
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Firme/DajFirme?idFirme=${korisnik?.idFirme}`, {
-                    method: "GET",
-                    headers: { "Authorization": `Bearer ${token}` }
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Firme/DajFirme?idFirme=${idFirme}`, {
+                    headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await res.json();
-                
+
                 if (data && data[0]) {
                     const firmaData = data[0];
                     setFirma(firmaData);
                     setSalons(firmaData.lokacije || []);
-                    
-                    // Ako nemamo ID iz tokena, uzmi prvi dostupni iz baze
+
                     if (!selectedSalonId && firmaData.lokacije?.length > 0) {
                         setSelectedSalonId(firmaData.lokacije[0].id);
                     }
@@ -78,8 +78,11 @@ export default function SalonPage() {
                 console.error('Greška prilikom učitavanja firme:', error);
             }
         };
-        if (idFirme) fetchFirma();
-    }, [korisnik?.idFirme]);
+
+        fetchFirma();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [idFirme]);
+
 
     // Fetch asortimana i inventara
     useEffect(() => {

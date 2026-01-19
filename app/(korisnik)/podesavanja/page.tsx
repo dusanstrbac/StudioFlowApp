@@ -253,9 +253,9 @@ export default function PodesavanjaPage() {
         switch (aktivnaSekcija) {
             case "Notifikacije": return "Prilagodite obaveštenja svojim potrebama.";
             case "Sigurnost": return "Promenite lozinku, aktivirajte 2FA i druge bezbednosne postavke.";
-            case "Tema / Izgled": return "Podešavanje stila vaše aplikacije";
+            case "Tema / Izgled": return "Podešavanje stila vaše aplikacije.";
             case "Lokal": return "Informacije o lokalu i promena radnog vremena.";
-            case "Pomoć i podrška": return "Linkovi i kontakti korisničke podrške";
+            case "Pomoć i podrška": return "Linkovi i kontakti korisničke podrške.";
             default: return "";
         }
     }, [aktivnaSekcija]);

@@ -251,11 +251,11 @@ export default function PodesavanjaPage() {
 
     const sekcijaOpis = useMemo(() => {
         switch (aktivnaSekcija) {
-            case "Notifikacije": return "Podesite kako i koja obaveštenja želite da dobijate.";
-            case "Sigurnost": return "Promeni lozinku, aktiviraj 2FA i druge bezbednosne postavke.";
+            case "Notifikacije": return "Prilagodite obaveštenja svojim potrebama.";
+            case "Sigurnost": return "Promenite lozinku, aktivirajte 2FA i druge bezbednosne postavke.";
             case "Tema / Izgled": return "Podešavanje stila vaše aplikacije";
-            case "Lokal": return "Informacije o lokalu i mogućnost promene podataka.";
-            case "Pomoć i podrška": return "Linkovi i kontakti korisničke podrške, prijavljivanje greške";
+            case "Lokal": return "Informacije o lokalu i promena radnog vremena.";
+            case "Pomoć i podrška": return "Linkovi i kontakti korisničke podrške";
             default: return "";
         }
     }, [aktivnaSekcija]);

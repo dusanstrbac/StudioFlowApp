@@ -10,7 +10,7 @@ import { Edit2, Trash2 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
-const tabs = ['Osnovne informacije', 'Zaposleni', 'Inventar', 'Usluge'];
+const tabs = ['Osnovne informacije', 'Zaposleni', 'Usluge']; // 'Inventar izbacen iz sistema'
 
 export default function SalonPage() {
     const korisnik = dajKorisnikaIzTokena();

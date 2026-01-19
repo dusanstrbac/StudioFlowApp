@@ -72,17 +72,12 @@ const TopNavigation = () => {
 
   return (
     <>
-      {/* KLJUČNA ISPRAVKA:
-        - mt-16 na mobilnom: gura TopNavigation ISPOD fiksiranog SideNav headera.
-        - lg:mt-0 na desktopu: uklanja tu marginu jer tamo nema mobilnog headera.
-        - lg:sticky lg:top-0: ostaje zalepljen samo na laptopu.
-      */}
       <div className="mt-16 lg:mt-0 flex flex-col lg:flex-row lg:justify-between lg:items-center border-b border-gray-200 px-4 sm:px-8 py-3 sm:py-4 bg-white lg:sticky lg:top-0 z-[40] gap-3 w-full shadow-sm">
         
-        {/* RED 1: Live Status */}
+        {/* Live Status */}
         <div className="flex items-center justify-evenly lg:justify-start lg:gap-3 w-full lg:w-auto">
           <h3 className="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">
-            Live Status
+            Status lokala
           </h3>
           
           <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 rounded-2xl border border-gray-100 shadow-inner">
@@ -102,14 +97,14 @@ const TopNavigation = () => {
           </div>
         </div>
 
-        {/* RED 2: Rezervacija i Datum */}
+        {/* Rezervacija i Datum */}
         <div className="flex items-center justify-evenly lg:justify-end gap-2 sm:gap-4 w-full lg:w-auto pt-2 lg:pt-0 border-t border-gray-50 lg:border-t-0">
           <button 
             onClick={() => setIsQuickBookingOpen(true)}
             className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-black text-white px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md active:scale-95 whitespace-nowrap"
           >
             <Calendar size={14} className="text-blue-400 shrink-0" />
-            <span className="sm:inline">Rezervacija</span>
+            <span className="sm:inline">Brza rezervacija</span>
           </button>
           
           <div className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100 whitespace-nowrap">

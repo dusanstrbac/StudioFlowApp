@@ -11,6 +11,10 @@ export default function UslugaModal({ isOpen, onClose, onSave, initialData, salo
     const [loading, setLoading] = useState(false);
     const lokacijaId = selectedSalonId;
     const [errors, setErrors] = useState({ categoryId: false, nameId: false, price: false, lokacijaId: false });
+    const [search, setSearch] = useState("");
+    const [openUsluge, setOpenUsluge] = useState(false);
+    const [openKategorije, setOpenKategorije] = useState(false);
+    const [searchKategorija, setSearchKategorija] = useState("");
 
     // Fetch usluge
     useEffect(() => {
@@ -47,6 +51,15 @@ export default function UslugaModal({ isOpen, onClose, onSave, initialData, salo
 
     // Prikaz usluga shodno odabranoj kategoriji usluga
     const currentCategory = uslugeGrupe.find(g => g.id === categoryId);
+
+    const filteredUsluge =
+    currentCategory?.uslugeDTO.filter(u =>
+        u.nazivUsluge.toLowerCase().includes(search.toLowerCase())
+    ) || [];
+
+    const filteredKategorije = uslugeGrupe.filter(k =>
+        k.nazivKategorije.toLowerCase().includes(searchKategorija.toLowerCase())
+    );
 
     // Postavljanje initial data ili default vrednosti
     useEffect(() => {
@@ -116,6 +129,8 @@ export default function UslugaModal({ isOpen, onClose, onSave, initialData, salo
         const handleKeyDown = (e: KeyboardEvent) => {
             // 'ESC' - Zatvaranje modala
             if (e.key === "Escape") {
+                setOpenKategorije(false);
+                setOpenUsluge(false);
                 onClose();
             }
         };
@@ -142,48 +157,128 @@ export default function UslugaModal({ isOpen, onClose, onSave, initialData, salo
                 ) : (
                     <>
                         {/* Kategorija */}
-                        <label className="block mb-2">
+                        <label className="block mb-2 relative">
                             <span className="text-sm font-medium">Kategorija:</span>
-                            <select
-                                className={`w-full p-2 border rounded mt-1 ${errors.categoryId ? 'border-red-500' : ''}`}
-                                value={categoryId || ""}
-                                onChange={(e) => {
-                                    const val = Number(e.target.value);
-                                    setCategoryId(val);
-                                    const firstUslugaId = uslugeGrupe.find(g => g.id === val)?.uslugeDTO[0]?.id || null;
-                                    setNameId(firstUslugaId);
-                                    setErrors(prev => ({ ...prev, categoryId: false, nameId: false })); // resetuj grešku
+
+                            {/* Trigger */}
+                            <div
+                                className={`w-full p-2 border rounded mt-1 bg-white cursor-pointer ${
+                                    errors.categoryId ? "border-red-500" : ""
+                                }`}
+                                onClick={() => {
+                                    setOpenKategorije(prev => !prev);
+                                    setOpenUsluge(false);
                                 }}
                             >
-                                <option value="">Izaberi kategoriju</option>
-                                {uslugeGrupe.map((group) => (
-                                    <option key={group.id} value={group.id}>
-                                        {group.nazivKategorije}
-                                    </option>
-                                ))}
-                            </select>
+                                {uslugeGrupe.find(k => k.id === categoryId)?.nazivKategorije ||
+                                    "Izaberi kategoriju"}
+                            </div>
+
+                            {/* Dropdown */}
+                            {openKategorije && (
+                                <div className="absolute z-50 w-full bg-white border rounded mt-1 shadow-lg">
+                                    {/* Search */}
+                                    <input
+                                        type="text"
+                                        placeholder="Pretraži kategorije..."
+                                        className="w-full p-2 border-b outline-none"
+                                        value={searchKategorija}
+                                        onChange={(e) => setSearchKategorija(e.target.value)}
+                                    />
+
+                                    {/* Lista */}
+                                    <div className="max-h-48 overflow-y-auto">
+                                        {filteredKategorije.length === 0 && (
+                                            <div className="p-2 text-sm text-gray-500">
+                                                Nema rezultata
+                                            </div>
+                                        )}
+
+                                        {filteredKategorije.map(group => (
+                                            <div
+                                                key={group.id}
+                                                className="p-2 hover:bg-blue-100 cursor-pointer text-sm"
+                                                onClick={() => {
+                                                    setCategoryId(group.id);
+
+                                                    const firstUslugaId =
+                                                        group.uslugeDTO[0]?.id || null;
+
+                                                    setNameId(firstUslugaId);
+                                                    setOpenKategorije(false);
+                                                    setSearchKategorija("");
+                                                    setErrors(prev => ({
+                                                        ...prev,
+                                                        categoryId: false,
+                                                        nameId: false
+                                                    }));
+                                                }}
+                                            >
+                                                {group.nazivKategorije}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </label>
 
                         {/* Naziv usluge */}
-                        <label className="block mb-2">
+                        <label className="block mb-2 relative">
                             <span className="text-sm font-medium">Naziv usluge:</span>
-                            <select
-                                className={`w-full p-2 border rounded mt-1 ${errors.nameId ? 'border-red-500' : ''}`}
-                                value={nameId || ""}
-                                onChange={(e) => {
-                                    setNameId(Number(e.target.value));
-                                    setErrors(prev => ({ ...prev, nameId: false }));
+
+                            {/* Trigger */}
+                            <div
+                                className={`w-full p-2 border rounded mt-1 bg-white cursor-pointer ${
+                                    errors.nameId ? "border-red-500" : ""
+                                } ${!categoryId ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                                onClick={() => {
+                                    categoryId && setOpenUsluge(prev => !prev);
+                                    setOpenKategorije(false);
                                 }}
-                                disabled={!categoryId}
                             >
-                                <option value="">Izaberi naziv usluge</option>
-                                {currentCategory?.uslugeDTO.map((item) => (
-                                    <option key={item.id} value={item.id}>
-                                        {item.nazivUsluge}
-                                    </option>
-                                ))}
-                            </select>
+                                {currentCategory?.uslugeDTO.find(u => u.id === nameId)?.nazivUsluge ||
+                                    "Izaberi naziv usluge"}
+                            </div>
+
+                            {/* Dropdown */}
+                            {openUsluge && categoryId && (
+                                <div className="absolute z-50 w-full bg-white border rounded mt-1 shadow-lg">
+                                    {/* Search */}
+                                    <input
+                                        type="text"
+                                        placeholder="Pretraži usluge..."
+                                        className="w-full p-2 border-b outline-none"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                    />
+
+                                    {/* Lista */}
+                                    <div className="max-h-48 overflow-y-auto">
+                                        {filteredUsluge.length === 0 && (
+                                            <div className="p-2 text-sm text-gray-500">
+                                                Nema rezultata
+                                            </div>
+                                        )}
+
+                                        {filteredUsluge.map(item => (
+                                            <div
+                                                key={item.id}
+                                                className="p-2 hover:bg-blue-100 cursor-pointer text-sm"
+                                                onClick={() => {
+                                                    setNameId(item.id);
+                                                    setOpenUsluge(false);
+                                                    setSearch("");
+                                                    setErrors(prev => ({ ...prev, nameId: false }));
+                                                }}
+                                            >
+                                                {item.nazivUsluge}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </label>
+
                     </>
                 )}
 

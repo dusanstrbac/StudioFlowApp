@@ -13,6 +13,13 @@ interface KalendarProps {
   idLokacije: number;
 }
 
+interface StandardniDanDto {
+  danUNedelji: number; // 0 = Ponedeljak, 6 = Nedelja
+  vremeOd: string;
+  vremeDo: string;
+  isNeradniDan: boolean;
+}
+
 // Helper funkcije
 const getDaysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
 const getStartDayOfMonth = (year: number, month: number) => new Date(year, month - 1, 1).getDay();
@@ -34,17 +41,15 @@ const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakaza
   const [isSelectOpen, setIsSelectOpen] = useState<boolean>(false);
   const [tempMonth, setTempMonth] = useState<number>(currentMonth);
   const [tempYear, setTempYear] = useState<number>(currentYear);
-
+  const [radnoVreme, setRadnoVreme] = useState<Record<number, boolean>>({});
   const daysInMonth = getDaysInMonth(currentYear, currentMonth + 1);
   const startDay = getStartDayOfMonth(currentYear, currentMonth + 1);
 
   // --- OSLUŠKIVAČ ZA PROMENU SALONA ---
   useEffect(() => {
     const handleSalonChange = () => {
-      // Kada dobijemo signal iz SideNavigation, resetujemo selekciju i osvežavamo podatke
       setSelectedDate(null);
       if (onMonthChange) {
-        // Ponovo okidamo funkciju za trenutni mesec i godinu da bi roditelj povukao nove termine
         onMonthChange(currentYear, currentMonth);
       }
     };
@@ -52,6 +57,26 @@ const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakaza
     window.addEventListener('salon_changed', handleSalonChange);
     return () => window.removeEventListener('salon_changed', handleSalonChange);
   }, [currentMonth, currentYear, onMonthChange]);
+
+  // Izvlaci radno vreme lokala
+  useEffect(() => {
+    const fetchRadnoVreme = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Firme/DajRadnoVreme/${idLokacije}`);
+        const data = await res.json();
+        console.log(data); // ovde vidiš JSON
+        const mapa: Record<number, boolean> = {};
+        data.forEach((d: StandardniDanDto) => {
+          const jsDay = d.danUNedelji === 6 ? 0 : d.danUNedelji + 1;
+          mapa[jsDay] = d.isNeradniDan;
+        });
+        setRadnoVreme(mapa);
+      } catch (err) {
+        console.error('Greška pri učitavanju radnog vremena:', err);
+      }
+    };
+    fetchRadnoVreme();
+  }, [idLokacije]);
 
   // Funkcija za promenu meseca/godine
   const updateMonth = (newMonth: number, newYear: number) => {
@@ -110,9 +135,9 @@ const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakaza
 
     // 2. Glavni dani meseca
     for (let day = 1; day <= daysInMonth; day++) {
-      const isSelected = selectedDate?.getDate() === day && 
-                         selectedDate.getMonth() === currentMonth && 
-                         selectedDate.getFullYear() === currentYear;
+      const isSelected = selectedDate?.getDate() === day &&
+                        selectedDate.getMonth() === currentMonth &&
+                        selectedDate.getFullYear() === currentYear;
       const isToday = today.getDate() === day && today.getMonth() === currentMonth && today.getFullYear() === currentYear;
 
       const broj = mesecniTermini.filter(t => {
@@ -120,23 +145,34 @@ const Kalendar = ({ asortiman, mesecniTermini = [], onDateSelect, onTerminZakaza
         return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       }).length;
 
+      const date = new Date(currentYear, currentMonth, day);
+      const danUNedelji = date.getDay();
+      const isNeradni = radnoVreme[danUNedelji] || false;
+
       days.push(
         <button
           key={`current-${day}`}
           onClick={() => handleDayClick(day, currentMonth, currentYear)}
           onDoubleClick={() => handleDayDoubleClick(day, currentMonth, currentYear)}
           className={`relative w-full h-20 sm:h-24 flex flex-col items-center justify-center cursor-pointer border transition-all duration-200 rounded-lg ${
-            isSelected 
-              ? 'bg-blue-600 text-white shadow-lg z-10 scale-[1.02] border-blue-700' 
+            isSelected
+              ? 'bg-blue-600 text-white shadow-lg z-10 scale-[1.02] border-blue-700'
               : 'hover:bg-blue-50 bg-white border-gray-100 shadow-sm'
           } ${isToday ? 'border-2 border-red-500 ring-1 ring-red-200' : ''}`}
         >
-          <span className={`absolute top-2 right-2 text-xs font-bold ${
-            isSelected ? 'text-blue-100' : isToday ? 'text-red-600' : 'text-gray-900'
-          }`}>
+          {/* Broj dana */}
+          <span className={`absolute top-2 right-2 text-xs font-bold ${isSelected ? 'text-blue-100' : isToday ? 'text-red-600' : 'text-gray-900'}`}>
             {day}
           </span>
 
+          {/* Oznaka neradnog dana */}
+          {isNeradni && (
+            <span className="absolute top-0 left-0 bg-red-100 text-red-600 text-[8px] px-1 py-[1px] rounded-br-lg font-bold">
+              Neradan dan
+            </span>
+          )}
+
+          {/* Broj termina */}
           {broj > 0 && (
             <div className="flex flex-col items-center mt-2">
               <span className={`text-xl sm:text-2xl font-black leading-none ${isSelected ? 'text-white' : 'text-blue-600'}`}>

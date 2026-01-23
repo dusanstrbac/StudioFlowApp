@@ -164,16 +164,13 @@ const BrzaRezervacijaModal = ({ isOpen, onClose, onSuccess }: Props) => {
         setStep(2);
 
       } else {
-        let poruka = "Došlo je do greške.";
-
         try {
           const err = await response.json();
-          poruka = err.message || poruka;
+          setError(err?.message || "Došlo je do greške");
         } catch {
-          poruka = await response.text();
+          const text = await response.text();
+          setError(text || "Došlo je do greške");
         }
-
-        setError(poruka);
       }
     } catch {
       setError("Server nije dostupan.");

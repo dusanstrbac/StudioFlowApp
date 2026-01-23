@@ -45,7 +45,7 @@ export default function Login() {
 
       if (!res.ok) {
         if (res.status === 400) {
-          throw new Error(rezultat.message);
+          throw new Error(rezultat);
         }
         throw new Error("Greška prilikom slanja zahteva.");
       }

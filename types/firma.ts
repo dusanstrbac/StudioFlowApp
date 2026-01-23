@@ -54,12 +54,13 @@ export interface FirmaInventarDTO {
 }
 
 export interface Termin {
-  id?: number;
-  idFirme?: number;
-  idLokacije?: number;
-  idUsluge?: number;
-  idZaposlenog?: number;
-  datumTermina: string;
-  cena: number;
-  imeMusterije: string;
+    id?: number;
+    idFirme?: number;
+    idLokacije?: number;
+    idUsluge?: number;
+    idZaposlenog?: number;
+    datumTermina: string;
+    cena: number;
+    imeMusterije: string;
+    nazivUsluge?: string;
 }

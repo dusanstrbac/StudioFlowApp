@@ -1,60 +1,36 @@
 'use client'
 import { Korisnik } from "@/types/korisnik";
-import { ArrowUpDown, CalendarDays, ClipboardList, FileText, GraduationCap, LogOut, PhoneIcon, TreePalm } from "lucide-react";
+import { CalendarDays, LogOut, PhoneIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCookie, deleteCookie } from "cookies-next";
-import { dajKorisnikaIzTokena, KorisnikToken } from "@/lib/auth";
+import { dajKorisnikaIzTokena } from "@/lib/auth";
+import { Termin } from "@/types/firma";
+
+interface SledeciTermin {
+  id: number;
+  datum: string;
+  ime: string;
+  usluga: string | null;
+}
 
 export default function Nalog() {
   const router = useRouter();
   const [korisnik, setKorisnik] = useState<Korisnik | null>(null);
   const [ucinak, setUcinak] = useState({ trenutni: 0, cilj: 150 });
+  const [sledeciTermin, setSledeciTermin] = useState<SledeciTermin | null>(null);
+  const [activeTab, setActiveTab] = useState<'ucinak' | 'termini'>('ucinak');
+  const [mojiTermini, setMojiTermini] = useState<Termin[]>([]);
+
 
   const formatirajDatum = (datum: string) => {
-    return new Date(datum).toLocaleDateString("sr-RS");
+    return new Date(datum).toLocaleDateString("sr-RS") + ' ' + new Date(datum).toLocaleTimeString("sr-RS", { hour: '2-digit', minute: '2-digit' });
   };
 
-  useEffect(() => {
-    const fetchKorisnik = async () => {
-      try {
-        const token = getCookie("AuthToken");
-        if (!token || typeof token !== "string") {
-          console.log("Nema AuthToken cookie-a");
-          return;
-        }
-
-        const korisnikIzTokena: KorisnikToken | null = dajKorisnikaIzTokena(token);
-        if (!korisnikIzTokena) return;
-
-        setKorisnik({
-          ime: korisnikIzTokena.ime,
-          uloga: korisnikIzTokena.uloga,
-          email: korisnikIzTokena.email,
-          telefon: korisnikIzTokena.telefon,
-          datumKreiranja: "", 
-          godisnjiOdmor: [],
-        });
-
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Korisnik/DajKorisnika?emailKorisnika=${korisnikIzTokena.email}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) throw new Error("Greška prilikom učitavanja korisnika");
-
-        const data = await res.json();
-        setKorisnik(prev => ({ ...prev, ...data })); // Spoji server data sa tokenom
-      } catch (error) {
-        console.error("Greška pri dohvatanju korisnika:", error);
-      }
-    };
-
-    fetchKorisnik();
-  }, []);
+  // Ovo ide bez vremena, samo vraca datum
+  const formatirajSamoDatum = (datum: string) => {
+    return new Date(datum).toLocaleDateString("sr-RS");
+  };
 
   const odjaviKorisnika = () => {
     deleteCookie("AuthToken");
@@ -62,7 +38,6 @@ export default function Nalog() {
     localStorage.removeItem('active_salon_id');
   };
 
-  // Fetchovanje ucinka radnika
   useEffect(() => {
     const fetchPodatke = async () => {
       try {
@@ -72,7 +47,6 @@ export default function Nalog() {
         const korisnikIzTokena = dajKorisnikaIzTokena(token);
         if (!korisnikIzTokena) return;
 
-        // Inicijalno postavljanje iz tokena
         setKorisnik({
           ime: korisnikIzTokena.ime,
           uloga: korisnikIzTokena.uloga,
@@ -82,7 +56,7 @@ export default function Nalog() {
           godisnjiOdmor: [],
         });
 
-        // 1️⃣ Fetch podataka o korisniku
+        // Fetch detalje korisnika
         const resKorisnik = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Korisnik/DajKorisnika?emailKorisnika=${korisnikIzTokena.email}`, {
           headers: { "Authorization": `Bearer ${token}` },
         });
@@ -91,16 +65,22 @@ export default function Nalog() {
           setKorisnik(prev => ({ ...prev, ...data }));
         }
 
-        // 2️⃣ Fetch učinka (Ovo je tvoj novi endpoint)
-        const resUcinak = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Korisnik/DajUcinakKorisnika?email=${korisnikIzTokena.email}`, {
+        // Fetch učinak
+        const resUcinak = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajUcinakKorisnika?korisnikId=${korisnikIzTokena.idKorisnika}`, {
           headers: { "Authorization": `Bearer ${token}` },
         });
         if (resUcinak.ok) {
           const ucinakData = await resUcinak.json();
-          setUcinak({
-            trenutni: ucinakData.trenutniUcinak,
-            cilj: ucinakData.cilj
-          });
+          setUcinak({ trenutni: ucinakData.trenutniUcinak, cilj: ucinakData.cilj });
+        }
+
+        // Fetch sledeći termin
+        const resTermin = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajSledeciTermin?korisnikId=${korisnikIzTokena.idKorisnika}`, {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        if (resTermin.ok) {
+          const data = await resTermin.json();
+          setSledeciTermin(data);
         }
 
       } catch (error) {
@@ -111,11 +91,45 @@ export default function Nalog() {
     fetchPodatke();
   }, []);
 
+  useEffect(() => {
+    const fetchTermine = async () => {
+      try {
+        const token = getCookie("AuthToken");
+        if (!token || typeof token !== "string") return;
+
+        const korisnik = dajKorisnikaIzTokena(token);
+        if (!korisnik) return;
+
+        const datum = new Date();
+        const mesec = datum.getMonth() + 1; // JS meseci od 0
+        const godina = datum.getFullYear();
+
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajZakazaneTermineZaMesec?idFirme=${korisnik.idFirme}&idLokacije=${korisnik.idLokacije}&mesec=${mesec}&godina=${godina}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!res.ok) throw new Error("Greška pri učitavanju termina");
+
+        const data: Termin[] = await res.json();
+        setMojiTermini(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchTermine();
+  }, []);
+
   const procenat = Math.min((ucinak.trenutni / ucinak.cilj) * 100, 100);
 
   return (
     <div className="max-w-5xl mx-auto mt-10 p-6">
-      {/* HEADER SEKCIJA - Inicijali i Ime */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row items-center gap-6 pb-8 border-b border-gray-200">
         <div className="w-20 h-20 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center text-3xl font-bold shadow-sm border border-sky-200">
           {korisnik?.ime?.split(' ').map(n => n[0]).join('') || 'U'}
@@ -134,94 +148,97 @@ export default function Nalog() {
         </div>
       </div>
 
-      {/* DASHBOARD GRID - Ključne informacije */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-        
-        {/* Kartica 1: Kontakt */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-sm font-bold text-gray-400 uppercase mb-3">Kontakt</p>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 text-gray-700">
-              <PhoneIcon className="w-5 h-5 text-sky-500" />
-              <span className="font-medium">{korisnik?.telefon || "Nema podataka"}</span>
+      {/* DASHBOARD GRID */}
+      <div className="max-w-5xl mx-auto mt-3 p-6">
+        {/* PRVI RED: Kontakt + Sledeći termin */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Kontakt */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <p className="text-sm font-bold text-gray-400 uppercase mb-3">Kontakt</p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 text-gray-700">
+                <PhoneIcon className="w-5 h-5 text-sky-500" />
+                <span className="font-medium">Telefon: <span className="text-blue-500">{korisnik?.telefon || "Nema podataka"}</span></span>
+              </div>
+              <div className="flex items-center gap-3 text-gray-700">
+                <CalendarDays className="w-5 h-5 text-sky-500" />
+                <span className="font-medium text-sm">
+                  Nalog kreiran: {korisnik?.datumKreiranja ? formatirajSamoDatum(korisnik.datumKreiranja) : "..."}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-gray-700">
-              <CalendarDays className="w-5 h-5 text-sky-500" />
-              <span className="font-medium text-sm">
-                Od: {korisnik?.datumKreiranja ? formatirajDatum(korisnik.datumKreiranja) : "..."}
-              </span>
+          </div>
+
+          {/* Sledeći termin */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <p className="text-sm font-bold text-gray-400 uppercase mb-3">Sledeći termin</p>
+            <div className="space-y-2">
+              <p className="text-gray-800 font-semibold">Frizer: {korisnik?.ime}</p>
+              <p className="text-gray-500 text-sm">Datum i vreme: {sledeciTermin ? formatirajDatum(sledeciTermin.datum) : '...'}</p>
+              <p className="text-gray-500 text-sm">Musterija: {sledeciTermin?.ime}</p>
+              <p className="text-gray-500 text-sm">Usluga: {sledeciTermin?.usluga}</p>
             </div>
           </div>
         </div>
 
-        {/* Kartica 2: Status i Odmor */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-sm font-bold text-gray-400 uppercase mb-3">Godišnji odmor</p>
-          <div className="flex items-center justify-between">
+        {/* Drugi red - Ucikan i moji termini */}
+        <div className="mt-8 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+          
+          {/* Tabovi */}
+          <div className="flex border-b border-gray-200 mb-4">
+            <button
+              className={`px-4 py-2 font-medium text-sm ${activeTab === 'ucinak' ? 'border-b-2 border-sky-500 text-gray-900' : 'text-gray-400'}`}
+              onClick={() => setActiveTab('ucinak')}
+            >
+              Učinak
+            </button>
+            <button
+              className={`px-4 py-2 font-medium text-sm ${activeTab === 'termini' ? 'border-b-2 border-sky-500 text-gray-900' : 'text-gray-400'}`}
+              onClick={() => setActiveTab('termini')}
+            >
+              Moji termini
+            </button>
+          </div>
+
+          {/* Sadržaj tabova */}
+          {activeTab === 'ucinak' && (
             <div>
-                <p className="text-2xl font-bold text-gray-800">
-                  {korisnik?.godisnjiOdmor?.[0]?.preostaloDana ?? 0} <span className="text-sm font-normal text-gray-500">/ {korisnik?.godisnjiOdmor?.[0]?.ukupnoDana ?? 0}</span>
-                </p>
-                <p className="text-xs text-green-600 font-semibold flex items-center gap-1 mt-1">
-                  <TreePalm className="w-3 h-3"/> Preostalo dana
-                </p>
+              <p className="text-3xl font-black text-gray-800">{ucinak.trenutni}</p>
+              <p className="text-sm text-gray-500 font-medium">Odrađenih termina</p>
+              <div className="mt-4 w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-sky-500 h-full rounded-full transition-all duration-1000 ease-out"
+                  style={{ width: `${procenat}%` }}
+                ></div>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase">
+                Cilj: {ucinak.cilj} termina
+              </p>
             </div>
-            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center">
-                <ArrowUpDown className="text-gray-400 w-6 h-6"/>
-            </div>
-          </div>
-        </div>
+          )}
 
-        {/* Kartica 3: Specijalizacija */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-          <p className="text-sm font-bold text-gray-400 uppercase mb-3">Ekspertiza</p>
-          <div className="font-bold text-gray-800 flex items-center gap-2">
-            <GraduationCap className="text-sky-600"/> Muški frizer
-          </div>
-          <p className="text-xs text-gray-400 mt-2 italic font-medium">Sertifikovana licenca A1</p>
+          {activeTab === 'termini' && (
+            <div className="h-72 overflow-y-auto space-y-3 pr-2">
+              {mojiTermini?.length > 0 ? (
+                mojiTermini.map((termin, i) => (
+                  <div key={i} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="font-medium text-gray-800">{termin.imeMusterije}</p>
+                    <p className="text-gray-500 text-sm">{formatirajDatum(termin.datumTermina)}</p>
+                    <p className="text-gray-500 text-sm">{termin.nazivUsluge || "Nema naziva usluge"}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-400 text-sm">Nema zakazanih termina</p>
+              )}
+            </div>
+          )}
+
         </div>
 
       </div>
 
-      {/* DONJA SEKCIJA - Zadaci i Dokumentacija */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10 bg-gray-50 p-8 rounded-3xl">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <FileText className="text-sky-500" /> Radni zadaci
-          </h2>
-          <ul className="space-y-3">
-            {['Izvršavanje usluga', 'Naručivanje robe za lokal', 'Čišćenje i sređivanje lokala'].map((zadatak, i) => (
-              <li key={i} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-200 text-gray-600 font-medium shadow-sm">
-                <div className="w-2 h-2 bg-sky-400 rounded-full"></div>
-                {zadatak}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="flex flex-col justify-center items-center text-center p-6 bg-white border border-gray-100 rounded-3xl shadow-sm">
-          <div className="bg-sky-50 p-4 rounded-2xl mb-3">
-            <ClipboardList className="w-8 h-8 text-sky-500" />
-          </div>
-          <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Učinak (Ovaj mesec)</p>
-          
-          {/* Dinamički broj učinka */}
-          <p className="text-3xl font-black text-gray-800 mt-1">{ucinak.trenutni}</p>
-          <p className="text-sm text-gray-500 font-medium">Odrađenih termina</p>
-          
-          <div className="mt-4 w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-            {/* Dinamički progres bar sa animacijom */}
-            <div 
-              className="bg-sky-500 h-full rounded-full transition-all duration-1000 ease-out" 
-              style={{ width: `${procenat}%` }}
-            ></div>
-          </div>
-          <p className="text-[10px] text-gray-400 mt-2 font-bold uppercase">
-            Cilj: {ucinak.cilj} termina
-          </p>
-        </div>
-      </div>
-
+      {/* ODJAVA */}
       <button
         onClick={odjaviKorisnika}
         className="fixed bottom-8 right-8 bg-white text-gray-500 border border-gray-200 px-5 py-2.5 rounded-xl font-semibold shadow-sm hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all flex items-center gap-2 cursor-pointer group text-sm"

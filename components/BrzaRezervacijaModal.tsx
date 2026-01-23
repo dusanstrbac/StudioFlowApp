@@ -38,6 +38,15 @@ const BrzaRezervacijaModal = ({ isOpen, onClose, onSuccess }: Props) => {
   const [slobodniTermini, setSlobodniTermini] = useState<SlobodanTermin[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const dajTrenutnoVreme = () => {
+    const sada = new Date();
+    sada.setMinutes(sada.getMinutes() + 1); // dodaje 1 minut
+    const sati = sada.getHours().toString().padStart(2, '0');
+    const minuti = sada.getMinutes().toString().padStart(2, '0');
+    return `${sati}:${minuti}`;
+  };
+  const danas = new Date().toISOString().split('T')[0];
+
   const [formData, setFormData] = useState({
     ime: "",
     telefon: "",
@@ -59,9 +68,18 @@ const BrzaRezervacijaModal = ({ isOpen, onClose, onSuccess }: Props) => {
     });
   };
 
+  // Ako je danasnji datum i vreme je u proslosti, daj trenutno vreme
+  useEffect(() => {
+    const sada = dajTrenutnoVreme();
+
+    if (formData.datum === danas && formData.vremeOd < sada) {
+      setFormData(prev => ({ ...prev, vremeOd: sada }));
+    }
+  }, [formData.datum]);
+
   // --- DOHVATANJE ASORTIMANA ---
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen) {      
       setStep(1);
       setError(null);
       setSelectedTermin(null);
@@ -105,31 +123,57 @@ const BrzaRezervacijaModal = ({ isOpen, onClose, onSuccess }: Props) => {
 
   const handleFindSlots = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!formData.uslugaId) {
       setError("Morate izabrati uslugu.");
       return;
     }
+
     setLoading(true);
     setError(null);
 
     try {
       const korisnik = dajKorisnikaIzTokena();
       const token = getCookie("AuthToken");
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/ProveriSlobodneTermine?idFirme=${korisnik?.idFirme}&idLokacije=${korisnik?.idLokacije}&datum=${formData.datum}&trajanjeMinuta=${formData.trajanje}`;
+
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/ProveriSlobodneTermine?idFirme=${korisnik?.idFirme}&idLokacije=${korisnik?.idLokacije}&datum=${formData.datum}&trajanjeMinuta=${formData.trajanje}&vremeOd=${formData.vremeOd}&idRadnika=${korisnik?.idKorisnika}`;
 
       const response = await fetch(url, {
-        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
       });
 
       if (response.ok) {
         const data: SlobodanTermin[] = await response.json();
-        const filtrirani = data.filter((t) => t.vreme >= formData.vremeOd);
-        if (filtrirani.length === 0) {
+
+        if (data.length === 0) {
           setError("Nema slobodnih termina.");
-        } else {
-          setSlobodniTermini(filtrirani);
-          setStep(2);
+          return;
         }
+
+        const filtrirani = data.filter(t => t.vreme >= formData.vremeOd);
+
+        if (filtrirani.length === 0) {
+          setError("Nema slobodnih termina u izabranom vremenskom opsegu.");
+          return;
+        }
+
+        setSlobodniTermini(filtrirani);
+        setStep(2);
+
+      } else {
+        let poruka = "Došlo je do greške.";
+
+        try {
+          const err = await response.json();
+          poruka = err.message || poruka;
+        } catch {
+          poruka = await response.text();
+        }
+
+        setError(poruka);
       }
     } catch {
       setError("Server nije dostupan.");
@@ -137,6 +181,7 @@ const BrzaRezervacijaModal = ({ isOpen, onClose, onSuccess }: Props) => {
       setLoading(false);
     }
   };
+
 
   const handleFinalConfirm = async () => {
     if (!selectedTermin) return;
@@ -286,7 +331,7 @@ const BrzaRezervacijaModal = ({ isOpen, onClose, onSuccess }: Props) => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Od vremena</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Početno vreme</label>
                   <input
                     type="time"
                     className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold outline-none"

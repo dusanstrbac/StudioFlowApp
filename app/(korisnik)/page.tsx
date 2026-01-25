@@ -1,11 +1,11 @@
 "use client";
 import Kalendar from "@/components/ui/Kalendar";
 import { dajKorisnikaIzTokena } from "@/lib/auth";
+import { korisnikJeVlasnik } from "@/lib/proveraUloge";
 import { FirmaAsortimanDTO } from "@/types/firma";
 import { getCookie } from "cookies-next";
 import { useEffect, useState, useCallback } from "react";
 
-// Definišemo interfejs za termine
 interface TerminDTO {
   datumTermina: string;
   imeMusterije: string;
@@ -17,109 +17,65 @@ export default function Home() {
   const korisnik = dajKorisnikaIzTokena();
   const idFirme = korisnik?.idFirme;
 
-  // State za praćenje aktivnog lokala koji se može menjati kroz navigaciju
-  const [trenutniIdLokacije, setTrenutniIdLokacije] = useState<string | null>(null);
-
   const [asortiman, setAsortiman] = useState<FirmaAsortimanDTO[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dnevniTermini, setDnevniTermini] = useState<TerminDTO[]>([]);
-  const [loadingTermini, setLoadingTermini] = useState(false);
   const [mesecniTermini, setMesecniTermini] = useState<TerminDTO[]>([]);
+  const [loadingTermini, setLoadingTermini] = useState(false);
+  const [trenutniIdLokacije, setTrenutniIdLokacije] = useState<string | null>(() => {
+    if (typeof window === "undefined" || !korisnik) return null;
+    return korisnikJeVlasnik(korisnik) ? localStorage.getItem("active_salon_id") : String(korisnik.idLokacije);
+  });
 
-  // 1. INICIJALIZACIJA: Čitamo početni ID iz localStorage ili iz tokena
-  useEffect(() => {
-    const sacuvanId = localStorage.getItem('active_salon_id');
-    if (sacuvanId) {
-      setTrenutniIdLokacije(sacuvanId);
-    } else if (korisnik?.idLokacije) {
-      const defaultId = String(korisnik.idLokacije);
-      setTrenutniIdLokacije(defaultId);
-      localStorage.setItem('active_salon_id', defaultId);
-    }
-  }, [korisnik?.idLokacije]);
+  // refreshCounter forsira remount Kalendara
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
-
-  // 2. FETCH FUNKCIJE: Koriste 'trenutniIdLokacije' iz state-a
+  // Fetch dnevnih termina
   const fetchDnevneTermine = useCallback(async (date: Date) => {
     if (!idFirme || !trenutniIdLokacije) return;
-    
     setLoadingTermini(true);
-    const sqlDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-    
+    const sqlDate = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`;
     try {
       const token = getCookie("AuthToken");
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajZakazaneTermine?idFirme=${idFirme}&idLokacije=${trenutniIdLokacije}&datumZakazivanja=${sqlDate}`, {
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
       if (res.ok) {
         const data: TerminDTO[] = await res.json();
         setDnevniTermini(data);
       }
     } catch (err) {
-      console.error("Greška pri osvežavanju dnevnih termina:", err);
+      console.error("Greška pri fetch dnevnih termina:", err);
     } finally {
       setLoadingTermini(false);
     }
   }, [idFirme, trenutniIdLokacije]);
 
+  // Fetch mesecnih termina
   const fetchMesecniTermini = useCallback(async (godina: number, mesec: number) => {
     if (!idFirme || !trenutniIdLokacije) return;
     try {
-        const token = getCookie("AuthToken");
-        const res = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajZakazaneTermineZaMesec?idFirme=${idFirme}&idLokacije=${trenutniIdLokacije}&mesec=${mesec + 1}&godina=${godina}`,
-            { headers: { "Authorization": `Bearer ${token}` } }
-        );
-        if (res.ok) {
-            const data = await res.json();
-            setMesecniTermini(data);
-        }
+      const token = getCookie("AuthToken");
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajZakazaneTermineZaMesec?idFirme=${idFirme}&idLokacije=${trenutniIdLokacije}&mesec=${mesec+1}&godina=${godina}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data: TerminDTO[] = await res.json();
+        setMesecniTermini(data);
+      }
     } catch (err) {
-        console.error("Greška pri osvežavanju mesečnih termina:", err);
+      console.error("Greška pri fetch mesečnih termina:", err);
     }
   }, [idFirme, trenutniIdLokacije]);
 
-  // 3. EVENT LISTENERS: Slušamo navigaciju i globalne promene
+  // Fetch asortimana (samo jednom po firmi)
   useEffect(() => {
-    const osveziLokal = () => {
-      const noviId = localStorage.getItem('active_salon_id');
-      if (noviId && noviId !== trenutniIdLokacije) {
-        console.log("Menjam lokal na:", noviId);
-        setTrenutniIdLokacije(noviId);
-      }
-    };
-
-    const osveziSve = () => {
-      fetchDnevneTermine(selectedDate);
-      fetchMesecniTermini(selectedDate.getFullYear(), selectedDate.getMonth());
-    };
-
-    window.addEventListener("salon_changed", osveziLokal);
-    window.addEventListener("terminZakazanGlobalno", osveziSve);
-
-    return () => {
-      window.removeEventListener("salon_changed", osveziLokal);
-      window.removeEventListener("terminZakazanGlobalno", osveziSve);
-    };
-  }, [trenutniIdLokacije, selectedDate, fetchDnevneTermine, fetchMesecniTermini]);
-
-  // 4. AUTOMATSKO OSVEŽAVANJE: Reaguje na promenu datuma ILI lokacije
-  useEffect(() => {
-    if (trenutniIdLokacije) {
-      fetchDnevneTermine(selectedDate);
-      fetchMesecniTermini(selectedDate.getFullYear(), selectedDate.getMonth());
-    }
-  }, [selectedDate, trenutniIdLokacije, fetchDnevneTermine, fetchMesecniTermini]);
-
-  // Fetch asortimana (zavisi samo od firme)
-  useEffect(() => {
+    if (!idFirme) return;
     const fetchAsortiman = async () => {
-      if (!idFirme) return;
       try {
         const token = getCookie("AuthToken");
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/Usluge/DajAsortiman?idFirme=${idFirme}`, {
-          headers: { "Authorization": `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
@@ -132,11 +88,42 @@ export default function Home() {
     fetchAsortiman();
   }, [idFirme]);
 
+  // Event listener-i samo za vlasnika
+  useEffect(() => {
+    if (!korisnik || !korisnikJeVlasnik(korisnik)) return;
+
+    const osveziLokal = () => {
+      const noviId = localStorage.getItem("active_salon_id");
+      if (noviId && noviId !== trenutniIdLokacije) setTrenutniIdLokacije(noviId);
+    };
+
+    const osveziSve = () => {
+      fetchDnevneTermine(selectedDate);
+      fetchMesecniTermini(selectedDate.getFullYear(), selectedDate.getMonth());
+      setRefreshCounter(prev => prev + 1); // forsiraj remount Kalendara
+    };
+
+    window.addEventListener("salon_changed", osveziLokal);
+    window.addEventListener("terminZakazanGlobalno", osveziSve);
+
+    return () => {
+      window.removeEventListener("salon_changed", osveziLokal);
+      window.removeEventListener("terminZakazanGlobalno", osveziSve);
+    };
+  }, [korisnik, trenutniIdLokacije, selectedDate, fetchDnevneTermine, fetchMesecniTermini]);
+
+  // Fetch termini kad se promeni selectedDate ili idLokacije
+  useEffect(() => {
+    if (!trenutniIdLokacije) return;
+    fetchDnevneTermine(selectedDate);
+    fetchMesecniTermini(selectedDate.getFullYear(), selectedDate.getMonth());
+  }, [selectedDate, trenutniIdLokacije, fetchDnevneTermine, fetchMesecniTermini, refreshCounter]);
+
   return (
     <div className="w-full">
-      {/* Kalendar sekcija */}
       <div className="mb-6">
-        <Kalendar 
+        <Kalendar
+          key={`${trenutniIdLokacije}-${refreshCounter}`} // ⬅️ forsira remount kad se doda termin ili promeni lokacija
           asortiman={asortiman}
           idLokacije={Number(trenutniIdLokacije)}
           mesecniTermini={mesecniTermini}
@@ -144,7 +131,8 @@ export default function Home() {
           onTerminZakazan={() => {
             fetchDnevneTermine(selectedDate);
             fetchMesecniTermini(selectedDate.getFullYear(), selectedDate.getMonth());
-          }}          
+            setRefreshCounter(prev => prev + 1); // ⬅️ odmah remount
+          }}
           onMonthChange={(year, month) => fetchMesecniTermini(year, month)}
         />
       </div>
@@ -171,26 +159,16 @@ export default function Home() {
           ) : dnevniTermini.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {dnevniTermini.map((termin, idx) => (
-                <div 
-                  key={idx} 
-                  className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 group cursor-default"
-                >
+                <div key={idx} className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 group cursor-default">
                   <div className="flex-shrink-0 bg-blue-600 text-white w-14 h-14 rounded-xl flex flex-col items-center justify-center shadow-blue-100 shadow-lg">
                     <span className="text-sm font-bold leading-none">
                       {new Date(termin.datumTermina).toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
-                      {termin.imeMusterije}
-                    </p>
-                    <p className="text-xs font-medium text-gray-500 truncate italic">
-                      {termin.nazivUsluge}
-                    </p>
-                    <p className="text-xs font-bold text-green-600 mt-1">
-                      {termin.cena} RSD
-                    </p>
+                    <p className="text-sm font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">{termin.imeMusterije}</p>
+                    <p className="text-xs font-medium text-gray-500 truncate italic">{termin.nazivUsluge}</p>
+                    <p className="text-xs font-bold text-green-600 mt-1">{termin.cena} RSD</p>
                   </div>
                 </div>
               ))}

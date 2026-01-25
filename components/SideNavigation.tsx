@@ -20,7 +20,6 @@ const SideNavigation = () => {
     const router = useRouter();
     const pathname = usePathname();
     
-    // State-ovi
     const [isMounted, setIsMounted] = useState(false);
     const [korisnik, setKorisnik] = useState<KorisnikToken | null>(null);
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -54,9 +53,6 @@ const SideNavigation = () => {
                     const memorisanaLokacija = localStorage.getItem('active_salon_id');
                     
                     if (korisnikJeVlasnik(trenutniKorisnik)) {
-                        // VLASNIK: 
-                        // Ako već ima nešto u memoriji, koristi to. 
-                        // Ako nema, postavi prvu lokaciju iz niza i upiši u memoriju.
                         if (memorisanaLokacija) {
                             setSelectedSalonId(memorisanaLokacija);
                         } else {
@@ -65,15 +61,11 @@ const SideNavigation = () => {
                             localStorage.setItem('active_salon_id', defaultId);
                         }
                     } else {
-                        // RADNIK / ZAPOSLENI:
-                        // Uvek koristi ID lokacije koji mu je dodeljen u bazi (iz tokena)
-                        // Time sprečavamo da radnik "slučajno" vidi kalendar drugog salona
                         const fiksniId = String(trenutniKorisnik.idLokacije);
                         setSelectedSalonId(fiksniId);
                         localStorage.setItem('active_salon_id', fiksniId);
                     }
                     
-                    // Obaveštavamo ostale komponente da je ID spreman
                     window.dispatchEvent(new Event('salon_changed'));
                 }
             } catch (error) {
@@ -124,7 +116,7 @@ const SideNavigation = () => {
             <div 
                 id="main-sidebar"
                 className={`
-                    fixed lg:sticky top-0 left-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-70
+                    fixed lg:sticky top-0 left-0 h-dvh lg:h-screen bg-white border-r border-gray-200 transition-all duration-300 z-70 pb-[calc(env(safe-area-inset-bottom)+12px)] lg:pb-0
                     ${isMobileOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full lg:translate-x-0'}
                     ${isCollapsed ? 'lg:w-[80px]' : 'lg:w-[240px]'}
                 `}

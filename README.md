@@ -125,19 +125,6 @@ The application is designed as part of a full-stack system.
 The application UI is currently available in Serbian.
 Internationalization (i18n) support is planned as a future improvement.
 
-📸 Screenshots / Demo
-
-(Add application screenshots here)
-Recommended:
-
-appointment calendar
-
-financial dashboard
-
-service management (owner view)
-
-If a live demo becomes available, add the link at the top of this section.
-
 📚 What I Learned
 
 modeling real-world business processes in an application
@@ -156,8 +143,6 @@ npm run dev
 
 🔮 Future Improvements
 
-extracting backend API into a separate repository
-
 extended financial analytics and reports
 
 additional automation and notifications
@@ -173,3 +158,4 @@ clean architecture
 realistic business logic
 
 maintainable and scalable frontend code
+

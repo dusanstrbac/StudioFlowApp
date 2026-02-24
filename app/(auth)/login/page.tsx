@@ -42,10 +42,11 @@ export default function Login() {
       });
       
       const rezultat = await res.json();
+      console.log(rezultat);
 
       if (!res.ok) {
         if (res.status === 400) {
-          throw new Error(rezultat);
+          throw new Error(rezultat.message);
         }
         throw new Error("Greška prilikom slanja zahteva.");
       }

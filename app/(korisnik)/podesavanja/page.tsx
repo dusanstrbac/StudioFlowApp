@@ -1,5 +1,7 @@
 'use client';
 import BetaOverlay from "@/components/BetaOverlay";
+import OnlineZakazivanjeModal from "@/components/ui/DesignReservationsModal";
+import DesignReservationModal from "@/components/ui/DesignReservationsModal";
 import { dajKorisnikaIzTokena } from "@/lib/auth";
 import { korisnikJeVlasnik } from "@/lib/proveraUloge";
 import { deleteCookie, getCookie } from "cookies-next";
@@ -63,6 +65,10 @@ export default function PodesavanjaPage() {
         { id: "promenaRadnogVremena", naziv: "Promena radnog vremena", opis: "Obaveštenje kada se promeni radno vreme lokala.", status: true },
         { id: "slanjeLogova", naziv: "Slanje informacija", opis: "Obaveštenje kada se promeni neka vasa informacija na profilu.", status: true }
     ]);
+
+    // Online zakazivanje
+    const [statusOnlineZakazivanja, setStatusOnlineZakazivanja] = useState(false);
+    const [isDesignModalOpen, setIsDesignModalOpen] = useState(false);
 
     // Podrska stanja
     const [opisProblema, setOpisProblema] = useState("");
@@ -274,7 +280,7 @@ const renderSadrzaj = () => {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="font-semibold text-gray-800">Email obaveštenja</p>
-                                            <p className="text-sm text-gray-500 italic">Primaćete izveštaje na {korisnik?.email}</p>
+                                            {/* <p className="text-sm text-gray-500 italic">Primaćete izveštaje na {korisnik?.email}</p> */}
                                         </div>
                                         <button 
                                             onClick={() => setEmailAktivan(!emailAktivan)}
@@ -476,6 +482,87 @@ const renderSadrzaj = () => {
                                         ))}
                                     </div>
                                 </div>
+
+                                <div className={`relative overflow-hidden rounded-3xl border shadow-sm p-6 transition-all
+                                                ${statusOnlineZakazivanja 
+                                                    ? "bg-gradient-to-br from-blue-50 to-white border-blue-100 shadow-blue-100/50" 
+                                                    : "bg-white border-gray-100"}`}>
+                                    {/* Glow pozadina kada je aktivno */}
+                                    {statusOnlineZakazivanja && (
+                                        <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-200 rounded-full blur-3xl opacity-30 pointer-events-none" />
+                                    )}
+
+                                    <div className="relative space-y-6">
+
+                                        {/* Header */}
+                                        <div className="flex flex-col gap-2 items-center justify-between">
+                                            <div>
+                                                <h3 className="font-black text-sm uppercase tracking-widest text-gray-900">
+                                                    Online zakazivanje
+                                                </h3>
+                                                <p className="text-sm text-gray-500">
+                                                    Omogućite klijentima da sami rezervišu termine.
+                                                </p>
+                                            </div>
+
+                                            <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2
+                                                ${statusOnlineZakazivanja 
+                                                    ? "bg-green-100 text-green-700" 
+                                                    : "bg-gray-100 text-gray-500"}`}>
+                                                <span className={`w-2 h-2 rounded-full 
+                                                    ${statusOnlineZakazivanja ? "bg-green-500" : "bg-gray-400"}`} />
+                                                {statusOnlineZakazivanja ? "Aktivno" : "Neaktivno"}
+                                            </div>
+                                        </div>
+
+                                        {/* Link box */}
+                                        <div className="space-y-2">
+                                            <p className="text-xs uppercase font-bold text-gray-400">
+                                                Link za zakazivanje
+                                            </p>
+
+                                            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                                                <input
+                                                    readOnly
+                                                    value="https://studioflow.rs/zakazivanja/studio%20Casual"
+                                                    className="flex-1 bg-transparent text-sm font-medium text-gray-700 outline-none"
+                                                />
+                                                <button
+                                                    onClick={() => navigator.clipboard.writeText("https://studioflow.rs/zakazivanja/studio%20Casual")}
+                                                    className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                                                >
+                                                    Kopiraj
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* CTA dugme – Aktivacija */}
+                                        <button
+                                            onClick={() => { setStatusOnlineZakazivanja(!statusOnlineZakazivanja); toast.success(`Uspešno ste ${statusOnlineZakazivanja ? 'Deaktivirali' : 'Aktivirali'} online zakazivanje`)}}
+                                            className={`w-full py-3 rounded-2xl font-bold text-sm transition-all cursor-pointer
+                                                ${statusOnlineZakazivanja
+                                                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200"}`}
+                                        >
+                                            {statusOnlineZakazivanja 
+                                                ? "Deaktiviraj zakazivanje" 
+                                                : "Aktiviraj online zakazivanje"}
+                                        </button>
+
+                                        {/* Dugme za dizajn – prikazuje se SAMO kada je aktivno */}
+                                        {statusOnlineZakazivanja && (
+                                            <button
+                                                onClick={() => setIsDesignModalOpen(true)} // ili šta već planiraš
+                                                className="w-full py-3 rounded-2xl font-bold text-sm transition-all cursor-pointer
+                                                        bg-white border border-gray-200 text-gray-800
+                                                        hover:bg-gray-100"
+                                            >
+                                                🎨 Promeni dizajn online zakazivanja
+                                            </button>
+                                        )}
+                                        
+                                    </div>
+                                </div>                            
                             </div>
 
                             {/* Desna kolona: Radno Vreme */}
@@ -557,6 +644,7 @@ const renderSadrzaj = () => {
     };
 
     return (
+        <>
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
             <div className="flex flex-col lg:flex-row gap-8">
                 {/* Sidebar Navigacija */}
@@ -630,5 +718,12 @@ const renderSadrzaj = () => {
                 </div>
             </div>
         </div>
+
+        <OnlineZakazivanjeModal
+            isOpen={isDesignModalOpen}
+            onClose={() => setIsDesignModalOpen(false)}
+        />
+        </>
     );
 }
+

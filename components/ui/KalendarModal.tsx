@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { 
     ClipboardClock, 
+    Pencil, 
     Receipt, 
     ShoppingCart, 
     Trash2, 
@@ -16,6 +17,7 @@ import { dajKorisnikaIzTokena } from '@/lib/auth';
 import { getCookie } from 'cookies-next';
 import { toast } from 'sonner';
 import UnosTroskaModal from '../UnosTroskaModal';
+import PromenaTermina from '../PromenaTermina';
 
 export interface KalendarModalProps {
     date: Date;
@@ -33,6 +35,17 @@ interface TerminDTO {
     cena: number;
     napomena: string;
     telefon: string;
+}
+
+interface TerminZaIzmenu {
+    id: number;
+    imeMusterije: string;
+    idUsluge: number;
+    datumTermina: string;
+    cena: number;
+    napomena: string;
+    telefon: string;
+    idLokacije: number;
 }
 
 interface Expense {
@@ -64,6 +77,8 @@ const KalendarModal: React.FC<KalendarModalProps> = ({ date, onClose, asortiman,
     const [isTrosakOpen, setIsTrosakOpen] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState('240px');
     const [selectedSalonId, setSelectedSalonId] = useState<number>(0);
+    const [editingTermin, setEditingTermin] = useState<TerminZaIzmenu | null>(null);
+    const [loadingEdit, setLoadingEdit] = useState(false);
 
     // --- SINHRONIZACIJA SA SIDEBAROM ---
     useEffect(() => {
@@ -151,6 +166,27 @@ const KalendarModal: React.FC<KalendarModalProps> = ({ date, onClose, asortiman,
         };
     }, []);
 
+    const handleEditTermin = async (client: Client) => {
+        try {
+            const token = getCookie("AuthToken");
+
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/Zakazivanja/DajTerminPoId?idTermina=${client.id}`,
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            if (!res.ok) throw new Error();
+
+            const data = await res.json();
+
+            setEditingTermin(data); // SADA tip odgovara
+        } catch {
+            toast.error("Greška pri učitavanju termina");
+        }
+    };
+
     const obrisiTermin = async (id: number) => {
         try {
             const token = getCookie("AuthToken");
@@ -236,8 +272,15 @@ const KalendarModal: React.FC<KalendarModalProps> = ({ date, onClose, asortiman,
                             <AnimatePresence mode="popLayout">
                                 {activeTab === 'termini' ? (
                                     clients.length === 0 ? (
-                                        <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
+                                        <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300 flex flex-col items-center gap-4">
                                             <p className="text-gray-400 font-medium">Nema zakazanih termina za ovaj dan.</p>
+                                            <button
+                                                onClick={() => setIsZakazivanjeOpen(true)}
+                                                className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-green-100 shadow-lg hover:bg-green-700 transition-all cursor-pointer"
+                                            >
+                                                <ClipboardClock size={18} />
+                                                Novi termin
+                                            </button>
                                         </div>
                                     ) : (
                                         clients.map(client => (
@@ -250,24 +293,43 @@ const KalendarModal: React.FC<KalendarModalProps> = ({ date, onClose, asortiman,
                                                         <p className='text-xs text-orange-400 italic'>{client.napomena}</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-6">
-                                                    <div className="text-right">
+                                                <div className="flex items-center gap-6 relative">                                                    
+                                                    {/* Default prikaz (vreme + cena) */}
+                                                    <div className="text-right transition-opacity duration-200 group-hover:opacity-0">
                                                         <p className="text-blue-600 font-black text-sm">{client.time}</p>
                                                         <p className="text-green-600 font-bold text-xs">{client.price} RSD</p>
                                                     </div>
-                                                    {isDeleteMode && (
-                                                        <button onClick={() => obrisiTermin(client.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all">
+
+                                                    {/* Edit rezervacije */}
+                                                    <div className="absolute right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-2">
+                                                        <button
+                                                            onClick={() => handleEditTermin(client)}
+                                                            className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all cursor-pointer"
+                                                        >
+                                                            <Pencil size={18} />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => obrisiTermin(client.id)} 
+                                                            className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"
+                                                        >
                                                             <Trash2 size={18} />
                                                         </button>
-                                                    )}
-                                                </div>
+                                                    </div>
+                                                </div>  
                                             </motion.div>
                                         ))
                                     )
                                 ) : (
                                     expenses.length === 0 ? (
-                                        <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-red-200">
+                                        <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-red-200 flex flex-col items-center gap-4">
                                             <p className="text-gray-400 font-medium">Nema evidentiranih troškova.</p>
+                                            <button
+                                                onClick={() => setIsTrosakOpen(true)}
+                                                className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-green-100 shadow-lg hover:bg-green-700 transition-all cursor-pointer"
+                                                >
+                                                <Receipt size={18} />
+                                                Novi trošak
+                                            </button>
                                         </div>
                                     ) : (
                                         expenses.map(exp => (
@@ -295,20 +357,16 @@ const KalendarModal: React.FC<KalendarModalProps> = ({ date, onClose, asortiman,
 
                 {/* Footer */}
                 <div className="p-4 sm:p-6 bg-white border-t flex gap-3 justify-between sm:justify-end">
+                {!(activeTab === 'termini' && clients.length === 0) &&
+                !(activeTab === 'troskovi' && expenses.length === 0) && (
                     <button 
-                        onClick={() => setIsDeleteMode(!isDeleteMode)} 
-                        className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${isDeleteMode ? 'bg-red-600 text-white shadow-red-200 shadow-lg' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                    onClick={() => activeTab === 'termini' ? setIsZakazivanjeOpen(true) : setIsTrosakOpen(true)}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-green-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-green-100 shadow-lg hover:bg-green-700 hover:-translate-y-0.5 transition-all"
                     >
-                        <Trash2 size={18} />
-                        {isDeleteMode ? "Završi" : "Obriši"}
+                    {activeTab === 'termini' ? <ClipboardClock size={18} /> : <Receipt size={18} />}
+                    {activeTab === 'termini' ? "Novi termin" : "Novi trošak"}
                     </button>
-                    <button 
-                        onClick={() => activeTab === 'termini' ? setIsZakazivanjeOpen(true) : setIsTrosakOpen(true)}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-green-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-green-100 shadow-lg hover:bg-green-700 hover:-translate-y-0.5 transition-all"
-                    >
-                        {activeTab === 'termini' ? <ClipboardClock size={18} /> : <Receipt size={18} />}
-                        {activeTab === 'termini' ? "Novi termin" : "Novi trošak"}
-                    </button>
+                )}
                 </div>
                 
                 {isZakazivanjeOpen && (
@@ -333,6 +391,19 @@ const KalendarModal: React.FC<KalendarModalProps> = ({ date, onClose, asortiman,
                             fetchTroskovi(); 
                             setIsTrosakOpen(false); 
                         }} 
+                    />
+                )}
+
+                {editingTermin && (
+                    <PromenaTermina
+                        termin={editingTermin}
+                        asortiman={asortiman}
+                        onClose={() => setEditingTermin(null)}
+                        onTerminIzmenjen={() => {
+                            fetchTermini();
+                            onTerminZakazan?.();
+                            setEditingTermin(null);
+                        }}
                     />
                 )}
             </motion.div>
